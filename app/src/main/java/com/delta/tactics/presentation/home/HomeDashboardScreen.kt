@@ -136,7 +136,7 @@ fun HomeDashboardScreen(
     // 冷启动 2.5 秒后在后台低优先级静默检查新版本
     LaunchedEffect(Unit) {
         delay(2500)
-        val result = appUpdateRepository.checkUpdate(currentVersionCode = 17)
+        val result = appUpdateRepository.checkUpdate(currentVersionCode = 18)
         if (result.isSuccess) {
             val info = result.getOrNull()
             if (info != null && info.hasUpdate) {
@@ -302,7 +302,7 @@ fun HomeDashboardScreen(
                         if (isCheckingUpdate) return@ProfileScreen
                         isCheckingUpdate = true
                         coroutineScope.launch {
-                            val res = appUpdateRepository.checkUpdate(currentVersionCode = 17)
+                            val res = appUpdateRepository.checkUpdate(currentVersionCode = 18)
                             isCheckingUpdate = false
                             if (res.isSuccess) {
                                 val info = res.getOrNull()
@@ -310,8 +310,8 @@ fun HomeDashboardScreen(
                                     updateInfo = info
                                     showUpdateDialog = true
                                 } else {
-                            android.widget.Toast.makeText(context, "当前已是最新版本 (v2.8.7)", android.widget.Toast.LENGTH_SHORT).show()
-                            snackbarHostState.showSnackbar("当前已是最新版本 (v2.8.7)")
+                                    android.widget.Toast.makeText(context, "当前已是最新版本 (v2.8.8)", android.widget.Toast.LENGTH_SHORT).show()
+                                    snackbarHostState.showSnackbar("当前已是最新版本 (v2.8.8)")
                                 }
                             } else {
                                 android.widget.Toast.makeText(context, "检查更新失败，请检查网络连接", android.widget.Toast.LENGTH_SHORT).show()

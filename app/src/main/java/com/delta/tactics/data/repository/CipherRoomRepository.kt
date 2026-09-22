@@ -1,5 +1,6 @@
 package com.delta.tactics.data.repository
 
+import android.content.Context
 import com.delta.tactics.domain.model.CipherRoom
 import com.delta.tactics.domain.model.DailyMapPassword
 import com.delta.tactics.domain.model.TacticalMap
@@ -9,10 +10,90 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
-class CipherRoomRepository {
+class CipherRoomRepository(private val context: Context? = null) {
+
+    private val prefs by lazy {
+        context?.getSharedPreferences("daily_passwords_cache", Context.MODE_PRIVATE)
+    }
+
+    /**
+     * 获取当前手机系统本地日期字符串 (yyyy-MM-dd)
+     */
+    fun getTodayDateString(): String {
+        return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+    }
+
+    /**
+     * 读取本地缓存。当且仅当缓存存在、日期与当前手机系统日期一致且非空时返回。
+     * 若未存储或已跨天，返回 null。
+     */
+    fun loadCachedPasswordsIfValid(): List<DailyMapPassword>? {
+        val sp = prefs ?: return null
+        val cachedDate = sp.getString("cached_date", null) ?: return null
+        val today = getTodayDateString()
+        if (cachedDate != today) {
+            return null // 跨天失效，需要重新从网络拉取
+        }
+        val jsonStr = sp.getString("cached_passwords_json", null) ?: return null
+        return parsePasswordsFromJson(jsonStr)
+    }
+
+    /**
+     * 保存每日密码到本地持久化缓存并记录当前手机系统日期
+     */
+    fun saveDailyPasswordsToCache(list: List<DailyMapPassword>) {
+        if (list.isEmpty()) return
+        val sp = prefs ?: return
+        try {
+            val jsonArray = JSONArray()
+            list.forEach { item ->
+                val obj = JSONObject().apply {
+                    put("mapId", item.mapId)
+                    put("mapName", item.mapName)
+                    put("code", item.code)
+                    put("locationDesc", item.locationDesc)
+                    put("refreshTime", item.refreshTime)
+                }
+                jsonArray.put(obj)
+            }
+            sp.edit()
+                .putString("cached_date", getTodayDateString())
+                .putString("cached_passwords_json", jsonArray.toString())
+                .apply()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun parsePasswordsFromJson(jsonStr: String): List<DailyMapPassword>? {
+        return try {
+            val jsonArray = JSONArray(jsonStr)
+            val result = mutableListOf<DailyMapPassword>()
+            for (i in 0 until jsonArray.length()) {
+                val obj = jsonArray.getJSONObject(i)
+                result.add(
+                    DailyMapPassword(
+                        mapId = obj.optString("mapId"),
+                        mapName = obj.optString("mapName"),
+                        code = obj.optString("code"),
+                        locationDesc = obj.optString("locationDesc"),
+                        refreshTime = obj.optString("refreshTime", "今日 00:00 实时同步")
+                    )
+                )
+            }
+            if (result.isNotEmpty()) result else null
+        } catch (e: Exception) {
+            null
+        }
+    }
 
     // 摩斯电码标准字典（对照鼠鼠工具 /fun/morseCode 破译标准）
     val morseCodeDict = mapOf(
@@ -28,46 +109,49 @@ class CipherRoomRepository {
         '9' to "----."
     )
 
-    // 6 大核心地图每日专属单一密码 (1:1 同步自三角洲鼠鼠工具 shushu.fan 首页)
-    private val _dailyPasswords = MutableStateFlow(
-        listOf(
-            DailyMapPassword(
-                mapId = "zero_dam",
-                mapName = "零号大坝",
-                code = "1392",
-                locationDesc = "水泥厂大仓二楼 / 变电站地下每日轮换门"
-            ),
-            DailyMapPassword(
-                mapId = "longbow_valley",
-                mapName = "长弓溪谷",
-                code = "5097",
-                locationDesc = "储油站二楼主控 / 皇后酒店每日轮换门"
-            ),
-            DailyMapPassword(
-                mapId = "barkash",
-                mapName = "巴克什",
-                code = "3144",
-                locationDesc = "皇家浴场水池北侧每日轮换门"
-            ),
-            DailyMapPassword(
-                mapId = "space_city",
-                mapName = "航天基地",
-                code = "9646",
-                locationDesc = "研发无尘核心净化区每日轮换门"
-            ),
-            DailyMapPassword(
-                mapId = "tide_prison",
-                mapName = "潮汐监狱",
-                code = "4885",
-                locationDesc = "重刑监区回廊典狱长每日轮换门"
-            ),
-            DailyMapPassword(
-                mapId = "az3_nuclear",
-                mapName = "AZ3",
-                code = "2525",
-                locationDesc = "反应堆冷却泵房应急每日轮换门"
-            )
+    // 默认种子数据
+    private val defaultSeedPasswords = listOf(
+        DailyMapPassword(
+            mapId = "zero_dam",
+            mapName = "零号大坝",
+            code = "1392",
+            locationDesc = "水泥厂大仓二楼 / 变电站地下每日轮换门"
+        ),
+        DailyMapPassword(
+            mapId = "longbow_valley",
+            mapName = "长弓溪谷",
+            code = "5097",
+            locationDesc = "储油站二楼主控 / 皇后酒店每日轮换门"
+        ),
+        DailyMapPassword(
+            mapId = "barkash",
+            mapName = "巴克什",
+            code = "3144",
+            locationDesc = "皇家浴场水池北侧每日轮换门"
+        ),
+        DailyMapPassword(
+            mapId = "space_city",
+            mapName = "航天基地",
+            code = "9646",
+            locationDesc = "研发无尘核心净化区每日轮换门"
+        ),
+        DailyMapPassword(
+            mapId = "tide_prison",
+            mapName = "潮汐监狱",
+            code = "4885",
+            locationDesc = "重刑监区回廊典狱长每日轮换门"
+        ),
+        DailyMapPassword(
+            mapId = "az3_nuclear",
+            mapName = "AZ3",
+            code = "2525",
+            locationDesc = "反应堆冷却泵房应急每日轮换门"
         )
+    )
+
+    // 6 大核心地图每日专属单一密码（优先从当天本地有效缓存恢复，无缓存时使用默认种子）
+    private val _dailyPasswords = MutableStateFlow(
+        loadCachedPasswordsIfValid() ?: defaultSeedPasswords
     )
     val dailyPasswords: Flow<List<DailyMapPassword>> = _dailyPasswords.asStateFlow()
 
@@ -175,8 +259,20 @@ class CipherRoomRepository {
 
     /**
      * 在线同步三角洲鼠鼠工具 (shushu.fan) 首页实时 4 位密码
+     * @param force 为 false 时优先检查本地缓存是否为当天，若当天已缓存则直接返回本地数据，零网络请求；
+     *              为 true 时强制向网络发起请求刷新，成功后更新本地缓存和日期。
      */
-    suspend fun syncDailyPasswordsFromWeb(): Result<List<DailyMapPassword>> = withContext(Dispatchers.IO) {
+    suspend fun syncDailyPasswordsFromWeb(force: Boolean = false): Result<List<DailyMapPassword>> = withContext(Dispatchers.IO) {
+        // 1. 若非强制刷新，优先检查本地缓存是否属于当天
+        if (!force) {
+            val cached = loadCachedPasswordsIfValid()
+            if (cached != null && cached.isNotEmpty()) {
+                _dailyPasswords.value = cached
+                return@withContext Result.success(cached)
+            }
+        }
+
+        // 2. 本地缓存不存在、已跨天或用户手动强制刷新，发起网络请求
         try {
             val url = URL("https://www.shushu.fan")
             val conn = (url.openConnection() as HttpURLConnection).apply {
@@ -230,12 +326,14 @@ class CipherRoomRepository {
 
                 if (mapCodeList.isNotEmpty()) {
                     _dailyPasswords.value = mapCodeList
+                    // 关键：将抓取到的最新密码持久化存入本地，并记录手机当前日期
+                    saveDailyPasswordsToCache(mapCodeList)
                     return@withContext Result.success(mapCodeList)
                 }
             }
             Result.success(_dailyPasswords.value)
         } catch (e: Exception) {
-            // 发生异常时优雅回退到本地默认的最新种子数据
+            // 发生异常时优雅回退到本地现有数据
             Result.success(_dailyPasswords.value)
         }
     }

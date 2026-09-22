@@ -159,7 +159,7 @@ fun ProfileScreen(
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "当前版本: v2.8.7 (Build 17)",
+                            text = "当前版本: v2.8.8 (Build 18)",
                             fontSize = 12.sp,
                             color = TextSecondaryGray
                         )
@@ -219,7 +219,7 @@ fun ProfileScreen(
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = "三角洲助手 v2.8.7 (液态玻璃导航版)",
+                            text = "三角洲助手 v2.8.8 (每日密码本地持久化版)",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimaryDark
@@ -227,7 +227,7 @@ fun ProfileScreen(
                     }
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "• 液态玻璃导航栏：半透明材质、柔光模糊、折射边缘与弹性选中胶囊\n• 特勤处工作台制造利润榜：防具/弹药/医疗/枪械 4 大工作台利润与时薪实时测算\n• 高级子弹自选包套利：3~5 级子弹自选包价值排行榜与首选推荐\n• 精简极速架构：彻底移除冗余战绩，全界面 60/120 FPS 满帧极速丝滑",
+                        text = "• 每日密码本地智能持久化缓存：当天启动免网络即开即显，零流量零延迟\n• 自动检测跨天刷新，次日自动同步最新密码并更新缓存\n• 解密中心新增密码状态与手动强制刷新能力\n• 苹果拟态液态玻璃常驻底栏精修优化",
                         fontSize = 12.sp,
                         color = TextSecondaryGray,
                         lineHeight = 20.sp

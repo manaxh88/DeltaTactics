@@ -28,9 +28,11 @@ import androidx.compose.material.icons.filled.Backspace
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -88,6 +90,7 @@ fun DecryptCenterScreen(
     }
 
     val dailyPasswords by viewModel.dailyPasswords.collectAsState()
+    val isSyncing by viewModel.isSyncing.collectAsState()
 
     LazyColumn(
         modifier = Modifier
@@ -324,6 +327,57 @@ fun DecryptCenterScreen(
                 }
             }
         } else {
+            // 每日地图密码状态提示与强制刷新栏
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "今日密码 (本地免流已保存)",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = TextSecondaryGray
+                    )
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable {
+                                viewModel.syncDailyPasswords(force = true) { success ->
+                                    onShowToast(if (success) "每日密码已同步至最新" else "同步失败，请检查网络")
+                                }
+                            }
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        if (isSyncing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(12.dp),
+                                strokeWidth = 1.5.dp,
+                                color = TacticalOrange
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = null,
+                                modifier = Modifier.size(13.dp),
+                                tint = TacticalOrange
+                            )
+                        }
+                        Text(
+                            text = if (isSyncing) "同步中..." else "强制刷新",
+                            fontSize = 12.sp,
+                            color = TacticalOrange,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+
             // 每日地图密码卡片列表
             items(dailyPasswords, key = { it.mapName }) { item ->
                 Surface(

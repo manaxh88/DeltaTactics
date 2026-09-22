@@ -1,6 +1,7 @@
 package com.delta.tactics.presentation.cipher
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.delta.tactics.data.repository.CipherRoomRepository
 import com.delta.tactics.domain.model.CipherRoom
@@ -24,8 +25,10 @@ data class CipherUiState(
 )
 
 class CipherRoomViewModel(
-    private val repository: CipherRoomRepository = CipherRoomRepository()
-) : ViewModel() {
+    application: Application
+) : AndroidViewModel(application) {
+
+    private val repository: CipherRoomRepository = CipherRoomRepository(application)
 
     private val _selectedMap = MutableStateFlow(TacticalMap.ALL)
     val selectedMap: StateFlow<TacticalMap> = _selectedMap.asStateFlow()
@@ -44,10 +47,10 @@ class CipherRoomViewModel(
         )
 
     init {
-        // 延迟 1.5 秒异步静默同步，避免冷启动与首帧渲染抢占 CPU 和线程池
+        // 延迟 1.5 秒异步检查并同步（当天已缓存时内部自动返回本地数据，零网络消耗）
         viewModelScope.launch {
             kotlinx.coroutines.delay(1500)
-            syncDailyPasswords()
+            syncDailyPasswords(force = false)
         }
     }
 
@@ -69,10 +72,10 @@ class CipherRoomViewModel(
         initialValue = CipherUiState()
     )
 
-    fun syncDailyPasswords(onComplete: ((Boolean) -> Unit)? = null) {
+    fun syncDailyPasswords(force: Boolean = false, onComplete: ((Boolean) -> Unit)? = null) {
         viewModelScope.launch {
             _isSyncing.value = true
-            val result = repository.syncDailyPasswordsFromWeb()
+            val result = repository.syncDailyPasswordsFromWeb(force = force)
             _isSyncing.value = false
             onComplete?.invoke(result.isSuccess)
         }
