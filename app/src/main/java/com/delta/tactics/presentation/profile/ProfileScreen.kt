@@ -159,7 +159,7 @@ fun ProfileScreen(
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "当前版本: v2.8.6 (Build 16)",
+                            text = "当前版本: v2.8.7 (Build 17)",
                             fontSize = 12.sp,
                             color = TextSecondaryGray
                         )
@@ -219,7 +219,7 @@ fun ProfileScreen(
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = "三角洲助手 v2.8.6 (液态玻璃导航版)",
+                            text = "三角洲助手 v2.8.7 (液态玻璃导航版)",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimaryDark

@@ -36,6 +36,8 @@ import com.delta.tactics.presentation.tasks.SeasonTasksScreen
 import com.delta.tactics.presentation.loadout.CardLoadoutScreen
 import com.delta.tactics.presentation.navigation.LiquidGlassBottomBar
 import com.delta.tactics.presentation.navigation.LiquidNavItem
+import com.delta.tactics.presentation.navigation.rememberGlassBackdrop
+import com.delta.tactics.presentation.navigation.glassSource
 import com.delta.tactics.presentation.profile.ProfileScreen
 import com.delta.tactics.presentation.cipher.DecryptCenterScreen
 import androidx.compose.material.icons.filled.Map
@@ -134,7 +136,7 @@ fun HomeDashboardScreen(
     // 冷启动 2.5 秒后在后台低优先级静默检查新版本
     LaunchedEffect(Unit) {
         delay(2500)
-        val result = appUpdateRepository.checkUpdate(currentVersionCode = 16)
+        val result = appUpdateRepository.checkUpdate(currentVersionCode = 17)
         if (result.isSuccess) {
             val info = result.getOrNull()
             if (info != null && info.hasUpdate) {
@@ -144,6 +146,7 @@ fun HomeDashboardScreen(
         }
     }
 
+    val glassBackdrop = rememberGlassBackdrop()
     val listState = rememberLazyListState()
     var currentNavTab by remember { mutableIntStateOf(0) }
     var showCraftProfitSheet by remember { mutableStateOf(false) }
@@ -176,6 +179,7 @@ fun HomeDashboardScreen(
     ) {
         val navBarsBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
+        Box(Modifier.fillMaxSize().glassSource(glassBackdrop)) {
         when (currentNavTab) {
             0 -> {
                 LazyColumn(
@@ -298,7 +302,7 @@ fun HomeDashboardScreen(
                         if (isCheckingUpdate) return@ProfileScreen
                         isCheckingUpdate = true
                         coroutineScope.launch {
-                            val res = appUpdateRepository.checkUpdate(currentVersionCode = 16)
+                            val res = appUpdateRepository.checkUpdate(currentVersionCode = 17)
                             isCheckingUpdate = false
                             if (res.isSuccess) {
                                 val info = res.getOrNull()
@@ -306,8 +310,8 @@ fun HomeDashboardScreen(
                                     updateInfo = info
                                     showUpdateDialog = true
                                 } else {
-                            android.widget.Toast.makeText(context, "当前已是最新版本 (v2.8.6)", android.widget.Toast.LENGTH_SHORT).show()
-                            snackbarHostState.showSnackbar("当前已是最新版本 (v2.8.6)")
+                            android.widget.Toast.makeText(context, "当前已是最新版本 (v2.8.7)", android.widget.Toast.LENGTH_SHORT).show()
+                            snackbarHostState.showSnackbar("当前已是最新版本 (v2.8.7)")
                                 }
                             } else {
                                 android.widget.Toast.makeText(context, "检查更新失败，请检查网络连接", android.widget.Toast.LENGTH_SHORT).show()
@@ -319,6 +323,7 @@ fun HomeDashboardScreen(
             }
         }
 
+        }
         // A light veil keeps the gesture area readable while preserving the
         // background colors beneath the translucent glass dock.
         Box(
@@ -339,6 +344,7 @@ fun HomeDashboardScreen(
 
         // 常驻苹果风液态玻璃底栏 (Apple Liquid Glass Dock)
         LiquidGlassBottomBar(
+            backdrop = glassBackdrop,
             items = navItems,
             selectedTab = currentNavTab,
             onTabSelected = { tab ->

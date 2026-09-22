@@ -71,18 +71,7 @@ data class LiquidNavItem(
 
 typealias NavItem = LiquidNavItem
 
-/**
- * 纯正苹果风格液态玻璃常驻底栏 (Apple iOS 18 / VisionOS Liquid Glass Dock)
- *
- * 核心苹果拟态特性：
- * 1. 悬浮胶囊底座 (Floating Capsule Dock)：高度 64dp，圆角 32dp 全胶囊药丸造型，悬浮于手势条之上。
- * 2. 苹果超透乳白水晶玻璃质感 (Ultra-Thin Translucent Glass)：多阶高透白纯净渐变，通透光泽，不脏不灰。
- * 3. 顶部 1px 极细镜面反射光弧 (Specular Highlight Line)：微曲镜面反光，真实模拟环境光投射。
- * 4. 苹果液态药丸滑块 (Apple Liquid Pill Indicator)：58dp 宽、48dp 高的柔润药丸滑块，自带微凸阴影与表面张力光泽。
- * 5. 液体张力弹性拉伸物理动效 (Fluid Surface Tension Physics)：Tab 切换时，滑块沿水平轴轻微拉伸 (scaleX=1.06)，落位时有机回弹 (Spring 0.76)。
- * 6. 严密 100% 数学绝对对称：各 Tab 基于父容器 1/N 均匀等分，滑块精准居中锚定，零偏移零误差。
- * 7. 图标与文字并存 (Apple SF Style Typography)：高对比度深石墨黑选中态 + 苹果次级灰未选中态。
- */
+/** Live page-backed glass dock with an independently rendered label layer. */
 @Composable
 fun LiquidGlassBottomBar(
     items: List<LiquidNavItem>,
@@ -90,9 +79,10 @@ fun LiquidGlassBottomBar(
     onTabSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
     backgroundColor: Color = Color.White,
-    selectedColor: Color = Color(0xFF0F172A),
+    selectedColor: Color = Color(0xFF202020),
     unselectedColor: Color = Color(0xFF8E8E93),
     barHeight: Dp = 64.dp,
+    backdrop: GlassBackdrop? = null,
     cornerRadius: Dp = 32.dp
 ) {
     val density = LocalDensity.current
@@ -157,16 +147,16 @@ fun LiquidGlassBottomBar(
                 .shadow(
                     elevation = 22.dp,
                     shape = RoundedCornerShape(cornerRadius),
-                    spotColor = Color(0x350F172A),
-                    ambientColor = Color(0x180F172A)
+                    spotColor = Color(0x35202020),
+                    ambientColor = Color(0x18202020)
                 )
                 .clip(RoundedCornerShape(cornerRadius))
                 .background(
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            backgroundColor.copy(alpha = 0.56f),
-                            Color(0xFFEAF3FF).copy(alpha = 0.34f),
-                            Color(0xFFDDEBFA).copy(alpha = 0.42f)
+                            backgroundColor.copy(alpha = 0.18f),
+                            Color(0xFFF5F5F5).copy(alpha = 0.10f),
+                            Color(0xFFEBEBEB).copy(alpha = 0.16f)
                         )
                     )
                 )
@@ -175,13 +165,14 @@ fun LiquidGlassBottomBar(
                     brush = Brush.verticalGradient(
                         colors = listOf(
                             Color.White.copy(alpha = 0.92f),
-                            Color(0xFFB9D9F5).copy(alpha = 0.54f),
+                            Color(0xFFE0E0E0).copy(alpha = 0.54f),
                             Color.White.copy(alpha = 0.72f)
                         )
                     ),
                     shape = RoundedCornerShape(cornerRadius)
                 )
         ) {
+            Box(Modifier.fillMaxSize().glassBackdrop(backdrop, cornerRadius.value))
             // Translucent material tint and a soft internal light bloom.
             Box(
                 modifier = Modifier
@@ -191,7 +182,7 @@ fun LiquidGlassBottomBar(
                             listOf(
                                 Color.White.copy(alpha = 0.18f),
                                 Color.Transparent,
-                                Color(0xFF8CC8F5).copy(alpha = 0.10f)
+                                Color(0xFFD8D8D8).copy(alpha = 0.10f)
                             )
                         )
                     )
@@ -207,7 +198,7 @@ fun LiquidGlassBottomBar(
                         Brush.radialGradient(
                             listOf(
                                 Color.White.copy(alpha = 0.72f),
-                                Color(0xFFB8E3FF).copy(alpha = 0.26f),
+                                Color(0xFFEFEFEF).copy(alpha = 0.26f),
                                 Color.Transparent
                             )
                         )
@@ -240,7 +231,7 @@ fun LiquidGlassBottomBar(
                             colors = listOf(
                                 Color.White.copy(alpha = 0.22f),
                                 Color.Transparent,
-                                Color(0xFF84BCE8).copy(alpha = 0.20f)
+                                Color(0xFFB8B8B8).copy(alpha = 0.20f)
                             )
                         )
                         onDrawWithContent {
@@ -277,16 +268,16 @@ fun LiquidGlassBottomBar(
                             .shadow(
                                 elevation = 7.dp,
                                 shape = RoundedCornerShape(24.dp),
-                                spotColor = Color(0x3A1D4770),
-                                ambientColor = Color(0x1A1D4770)
+                                spotColor = Color(0x3A303030),
+                                ambientColor = Color(0x1A303030)
                             )
                             .clip(RoundedCornerShape(24.dp))
                             .background(
                                 brush = Brush.verticalGradient(
                                     colors = listOf(
                                         Color.White.copy(alpha = 0.78f),
-                                        Color(0xFFD9EEFF).copy(alpha = 0.46f),
-                                        Color(0xFFB7DBF5).copy(alpha = 0.40f)
+                                        Color(0xFFF2F2F2).copy(alpha = 0.46f),
+                                        Color(0xFFE2E2E2).copy(alpha = 0.40f)
                                     )
                                 )
                             )
@@ -295,7 +286,7 @@ fun LiquidGlassBottomBar(
                                 brush = Brush.verticalGradient(
                                     colors = listOf(
                                         Color.White.copy(alpha = 0.95f),
-                                        Color(0xFF8FC7F2).copy(alpha = 0.60f)
+                                        Color(0xFFCCCCCC).copy(alpha = 0.60f)
                                     )
                                 ),
                                 shape = RoundedCornerShape(24.dp)
@@ -310,7 +301,7 @@ fun LiquidGlassBottomBar(
                                 .background(
                                     Brush.verticalGradient(
                                         listOf(
-                                            Color.White.copy(alpha = 0.42f),
+                                            Color.White.copy(alpha = 0.16f),
                                             Color.Transparent
                                         )
                                     )
@@ -453,9 +444,10 @@ fun LiquidGlassBottomNavBar(
     onItemSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
     backgroundColor: Color = Color.White,
-    selectedColor: Color = Color(0xFF0F172A),
+    selectedColor: Color = Color(0xFF202020),
     unselectedColor: Color = Color(0xFF8E8E93),
     barHeight: Dp = 64.dp,
+    backdrop: GlassBackdrop? = null,
     cornerRadius: Dp = 32.dp
 ) = LiquidGlassBottomBar(
     items = items,
@@ -466,5 +458,6 @@ fun LiquidGlassBottomNavBar(
     selectedColor = selectedColor,
     unselectedColor = unselectedColor,
     barHeight = barHeight,
+    backdrop = backdrop,
     cornerRadius = cornerRadius
 )
