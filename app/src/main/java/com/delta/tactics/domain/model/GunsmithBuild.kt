@@ -1,0 +1,156 @@
+package com.delta.tactics.domain.model
+
+/**
+ * 热门改枪配装模型（抄作业数据包）
+ */
+data class GunsmithBuild(
+    val id: String,
+    val gunName: String,
+    val roleName: String,               // 方案定位（如 "稳定激光"、"远程点名"、"贴脸爆发"）
+    val category: String,               // "突击步枪", "冲锋枪", "狙击步枪", "射手步枪"
+    val caliber: String,                // 口径规格（如 "5.56×45mm"）
+    val buildCode: String,              // 官方游戏改枪码
+    val imageUrl: String,               // 官方透明高清武器图
+    val specs: String,                  // 核心参数（如 "后坐力 -18% • 射程 42m"）
+    val description: String,            // 方案设计初衷与实战打法
+    val pros: List<String>,             // 优势标签
+    val keyAccessories: List<String>    // 关键核心配件推荐清单
+)
+
+/**
+ * 武器库官方图与热门改枪码方案提供类
+ */
+object GunsmithBuildRepository {
+
+    val POPULAR_BUILDS: List<GunsmithBuild> = listOf(
+        GunsmithBuild(
+            id = "m4a1_laser",
+            gunName = "M4A1 突击步枪",
+            roleName = "全面突击 • 稳定激光",
+            category = "突击步枪",
+            caliber = "5.56×45mm",
+            buildCode = "M4A1-6824-TAC",
+            imageUrl = "https://playerhub.df.qq.com/playerhub/60004/object/18010000001.png",
+            specs = "后坐力 -18% • 射程 42m • 射速 800 RPM",
+            description = "全面压制水平与垂直后坐力，中远距离全自动无抖动，压枪门槛极低，适合大坝中距阵地交火。",
+            pros = listOf("激光弹道", "极低后座", "新手友好", "泛用性强"),
+            keyAccessories = listOf("幻影精选长枪管", "斜角减震握把", "全息光学瞄具", "45发扩容弹匣")
+        ),
+        GunsmithBuild(
+            id = "ax50_sniper",
+            gunName = "AX-50 狙击步枪",
+            roleName = "长弓远狙 • 远程点名",
+            category = "狙击步枪",
+            caliber = ".50 BMG",
+            buildCode = "AX50-9041-HOT",
+            imageUrl = "https://playerhub.df.qq.com/playerhub/60004/object/18060000001.png",
+            specs = "开镜 0.32s • 射程 96m • 极限致命伤",
+            description = "牺牲微量腰射换取极速开镜与高倍率弹道计算，长弓溪谷与巴克什高点狙击位一击必杀方案。",
+            pros = listOf("单发毙命", "极速开镜", "超远射程", "高穿甲"),
+            keyAccessories = listOf("灵眼12倍弹道狙击镜", "钛金轻量脚架", "战术消音枪口", "人体工学腮托")
+        ),
+        GunsmithBuild(
+            id = "k416_meta",
+            gunName = "K416 突击步枪",
+            roleName = "烽火利器 • 火力压制",
+            category = "突击步枪",
+            caliber = "5.56×45mm",
+            buildCode = "K416-5520-TAC",
+            imageUrl = "https://playerhub.df.qq.com/playerhub/60004/object/18010000013.png",
+            specs = "射速 850 RPM • 控制 76 • 射程 50m",
+            description = "主流高段位排位主力步枪，兼顾射速与连发精度，近距爆发与中距对枪均处于T0级别。",
+            pros = listOf("T0射速", "稳定弹道", "控枪舒适", "破甲高效"),
+            keyAccessories = listOf("竞赛重型枪管", "共振前握把", "ACOG四倍镜", "特种重型枪托")
+        ),
+        GunsmithBuild(
+            id = "warrior_cqb",
+            gunName = "勇士 冲锋枪",
+            roleName = "贴脸强袭 • 高穿腰射",
+            category = "冲锋枪",
+            caliber = "9×19mm",
+            buildCode = "WARRIOR-8831-CQB",
+            imageUrl = "https://playerhub.df.qq.com/playerhub/60004/object/18020000009.png",
+            specs = "机动 +25% • TTK 210ms • 贴脸秒杀",
+            description = "航天基地室内战与狭窄楼道冲房神器，腰射散布拉到极致，近战开火即融化敌方护甲。",
+            pros = listOf("极速TTK", "超高人机", "腰射激光", "室内王者"),
+            keyAccessories = listOf("勇士海狸枪管", "快拔反射红点", "轻量镂空握把", "50发大弹鼓")
+        ),
+        GunsmithBuild(
+            id = "mp5_speed",
+            gunName = "MP5 冲锋枪",
+            roleName = "极速跑打 • 灵活突防",
+            category = "冲锋枪",
+            caliber = "9×19mm",
+            buildCode = "MP5-3319-RUN",
+            imageUrl = "https://playerhub.df.qq.com/playerhub/60004/object/18020000001.png",
+            specs = "射速 900 RPM • 散布 -30% • 极速拔枪",
+            description = "高移速高射速跑打流派，配合滑铲跳与身法干员（威龙/露娜）快速切入侧翼打敌措手不及。",
+            pros = listOf("极高射速", "跑打极稳", "后座平缓", "手感丝滑"),
+            keyAccessories = listOf("战术一体消音管", "垂直快拔握把", "微型紧凑红点", "折叠轻量枪托")
+        ),
+        GunsmithBuild(
+            id = "vss_silent",
+            gunName = "VSS 射手步枪",
+            roleName = "隐秘暗杀 • 微声连发",
+            category = "射手步枪",
+            caliber = "9×39mm",
+            buildCode = "VSS-7714-SLT",
+            imageUrl = "https://playerhub.df.qq.com/playerhub/60004/object/18050000003.png",
+            specs = "自带微声 • 穿甲肉伤双高 • 射速 700 RPM",
+            description = "自带一体消音器，开火雷达无显红点，配合重型亚音速弹中距离连发点射极具压制力。",
+            pros = listOf("全图隐秘", "无声暗杀", "全自动连发", "破甲力强"),
+            keyAccessories = listOf("4倍专用光学镜", "一体化轻量枪托", "30发加长弹匣", "侧挂战术红外")
+        ),
+        GunsmithBuild(
+            id = "akm_heavy",
+            gunName = "AKM 突击步枪",
+            roleName = "硬核高伤 • 破甲暴击",
+            category = "突击步枪",
+            caliber = "7.62×39mm",
+            buildCode = "AKM-4412-HVY",
+            imageUrl = "https://playerhub.df.qq.com/playerhub/60004/object/18010000006.png",
+            specs = "单发 41 肉伤 • 破甲卓越 • 压枪手感沉稳",
+            description = "追求高单发威力的老手专属，3发碎甲击杀效率极高，适合精通压枪控弹道的中近距对枪手。",
+            pros = listOf("单发高伤", "碎甲迅速", "威慑力大", "经济耐用"),
+            keyAccessories = listOf("特种补偿器枪口", "战术导轨护木", "RK-0垂直握把", "防滑橡胶后握把")
+        ),
+        GunsmithBuild(
+            id = "ash12_beast",
+            gunName = "ASh-12 突击步枪",
+            roleName = "大口径巨兽 • 近身碎甲",
+            category = "突击步枪",
+            caliber = "12.7×55mm",
+            buildCode = "ASH12-6601-DMG",
+            imageUrl = "https://playerhub.df.qq.com/playerhub/60004/object/18010000012.png",
+            specs = "单发 62 肉伤 • 碎甲 2 发入魂 • 威慑拉满",
+            description = "发射亚音速重弹的近战推土机，两枪击破5级重甲，在据点争夺与撤离点防守中堪称绞肉机。",
+            pros = listOf("毁灭级肉伤", "极限碎甲", "近距离霸凌", "重炮轰鸣"),
+            keyAccessories = listOf("重型制退消焰器", "战术大倾角前握把", "全息近战镜", "20发双排重弹匣")
+        )
+    )
+
+    /**
+     * 根据武器名称获取对应官方图片 URL
+     */
+    fun getWeaponImageUrl(weaponName: String): String {
+        val lower = weaponName.lowercase()
+        return when {
+            lower.contains("m4a1") || lower.contains("m4") -> "https://playerhub.df.qq.com/playerhub/60004/object/18010000001.png"
+            lower.contains("k416") || lower.contains("416") -> "https://playerhub.df.qq.com/playerhub/60004/object/18010000013.png"
+            lower.contains("ax50") || lower.contains("ax-50") -> "https://playerhub.df.qq.com/playerhub/60004/object/18060000001.png"
+            lower.contains("勇士") -> "https://playerhub.df.qq.com/playerhub/60004/object/18020000009.png"
+            lower.contains("mp5") -> "https://playerhub.df.qq.com/playerhub/60004/object/18020000001.png"
+            lower.contains("vss") -> "https://playerhub.df.qq.com/playerhub/60004/object/18050000003.png"
+            lower.contains("akm") -> "https://playerhub.df.qq.com/playerhub/60004/object/18010000006.png"
+            lower.contains("ash") || lower.contains("ash-12") -> "https://playerhub.df.qq.com/playerhub/60004/object/18010000012.png"
+            lower.contains("腾龙") -> "https://playerhub.df.qq.com/playerhub/60004/object/18010000038.png"
+            lower.contains("uzi") -> "https://playerhub.df.qq.com/playerhub/60004/object/18020000004.png"
+            lower.contains("m1014") || lower.contains("霰弹") -> "https://playerhub.df.qq.com/playerhub/60004/object/18030000001.png"
+            lower.contains("m250") || lower.contains("机枪") -> "https://playerhub.df.qq.com/playerhub/60004/object/18040000003.png"
+            lower.contains("m16") || lower.contains("m16a4") -> "https://playerhub.df.qq.com/playerhub/60004/object/18010000014.png"
+            lower.contains("aks") || lower.contains("74u") -> "https://playerhub.df.qq.com/playerhub/60004/object/18010000010.png"
+            lower.contains("沙漠之鹰") || lower.contains("沙鹰") -> "https://playerhub.df.qq.com/playerhub/60004/object/18070000004.png"
+            else -> ""
+        }
+    }
+}

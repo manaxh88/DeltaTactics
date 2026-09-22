@@ -31,8 +31,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.widget.Toast
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.delta.tactics.domain.model.*
+import com.delta.tactics.presentation.common.AsyncItemImage
 
 // 现代极简战术调色板
 private val BgLightGray = Color(0xFFF8FAFC)
@@ -486,6 +492,134 @@ private fun LoadoutPlanCard(
                 }
             }
 
+            val mainGun = remember(plan) {
+                plan.data.firstOrNull { (it.type.startsWith("枪") || it.type.startsWith("手枪")) && !it.type.contains("-") }
+            }
+            val context = LocalContext.current
+            val clipboardManager = LocalClipboardManager.current
+
+            // 方案主武器图片卡片与一键方案复制 (支持避难所抄作业)
+            if (mainGun != null) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFFF8FAFC))
+                        .border(0.8.dp, Color(0xFFE2E8F0), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(width = 64.dp, height = 38.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color.White)
+                                .border(0.5.dp, Color(0xFFE2E8F0), RoundedCornerShape(8.dp))
+                                .padding(2.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (mainGun.pic.isNotBlank()) {
+                                AsyncItemImage(
+                                    url = mainGun.pic,
+                                    contentDescription = mainGun.name,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Fit
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Shield,
+                                    contentDescription = null,
+                                    tint = TextSecondaryGray,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+
+                        Column {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = mainGun.name,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextPrimaryDark,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(TacticalDark)
+                                        .padding(horizontal = 4.dp, vertical = 1.dp)
+                                ) {
+                                    Text(
+                                        text = "推荐核心",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "单枪花费: ${formatWan(mainGun.price)}",
+                                fontSize = 11.sp,
+                                color = TextSecondaryGray
+                            )
+                        }
+                    }
+
+                    // 一键复制避难所卡战备方案 / 改枪清单
+                    Surface(
+                        onClick = {
+                            val copyText = buildString {
+                                appendLine("【三角洲行动 • 卡战备抄作业方案】")
+                                appendLine("方案: ${plan.name} (目标战备 ≥ ${thresholdValue / 10000}W)")
+                                appendLine("主武器: ${mainGun.name}")
+                                appendLine("实际花费: ${plan.price} 币 | 系统战备: ${plan.jz} 币 (立省 ${savings} 币)")
+                                appendLine("装配明细:")
+                                plan.data.forEach { item ->
+                                    appendLine("- ${item.name} [${item.type}] : ${item.price} 币")
+                                }
+                            }
+                            clipboardManager.setText(AnnotatedString(copyText))
+                            Toast.makeText(context, "已复制「${plan.name}」完整配装清单！", Toast.LENGTH_SHORT).show()
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        color = TacticalDark,
+                        modifier = Modifier.height(30.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Text(
+                                text = "复制方案",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(14.dp))
 
             // 核心金额三栏卡片
@@ -642,21 +776,41 @@ private fun LoadoutItemRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.weight(1f)
             ) {
-                // 品质等级菱形小方块
+                // 装备品质图片 / 分类图标
                 Box(
                     modifier = Modifier
-                        .size(10.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(getGradeBadgeColor(item.grade))
-                )
-
-                // 装备分类图标
-                Icon(
-                    imageVector = getItemCategoryIcon(item.type, item.name),
-                    contentDescription = null,
-                    tint = if (isChild) TextSecondaryGray else TextPrimaryDark,
-                    modifier = Modifier.size(14.dp)
-                )
+                        .size(if (isChild) 28.dp else 34.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color.White)
+                        .border(1.dp, getGradeBadgeColor(item.grade).copy(alpha = 0.5f), RoundedCornerShape(6.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (item.pic.isNotBlank()) {
+                        AsyncItemImage(
+                            url = item.pic,
+                            contentDescription = item.name,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(2.dp),
+                            contentScale = ContentScale.Fit,
+                            fallback = {
+                                Icon(
+                                    imageVector = getItemCategoryIcon(item.type, item.name),
+                                    contentDescription = null,
+                                    tint = getGradeBadgeColor(item.grade),
+                                    modifier = Modifier.size(if (isChild) 14.dp else 18.dp)
+                                )
+                            }
+                        )
+                    } else {
+                        Icon(
+                            imageVector = getItemCategoryIcon(item.type, item.name),
+                            contentDescription = null,
+                            tint = getGradeBadgeColor(item.grade),
+                            modifier = Modifier.size(if (isChild) 14.dp else 18.dp)
+                        )
+                    }
+                }
 
                 // 装备名称
                 Text(

@@ -105,10 +105,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import com.delta.tactics.R
 import com.delta.tactics.core.ui.theme.*
 import com.delta.tactics.domain.model.DailyMapPassword
+import com.delta.tactics.domain.model.GunsmithBuildRepository
 import com.delta.tactics.presentation.cipher.CipherRoomViewModel
+import com.delta.tactics.presentation.common.AsyncItemImage
+import com.delta.tactics.presentation.gunsmith.HotGunsmithBottomSheet
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -136,7 +141,7 @@ fun HomeDashboardScreen(
     // 冷启动 2.5 秒后在后台低优先级静默检查新版本
     LaunchedEffect(Unit) {
         delay(2500)
-        val result = appUpdateRepository.checkUpdate(currentVersionCode = 18)
+        val result = appUpdateRepository.checkUpdate(currentVersionCode = 19)
         if (result.isSuccess) {
             val info = result.getOrNull()
             if (info != null && info.hasUpdate) {
@@ -153,10 +158,12 @@ fun HomeDashboardScreen(
     var showBulletProfitSheet by remember { mutableStateOf(false) }
     var showWeaponCompareSheet by remember { mutableStateOf(false) }
     var showKeyRoomsSheet by remember { mutableStateOf(false) }
+    var showHotGunsmithSheet by remember { mutableStateOf(false) }
     val craftSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val bulletSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val weaponSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val keyRoomsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val hotGunsmithSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val navItems = remember {
         listOf(
@@ -216,12 +223,7 @@ fun HomeDashboardScreen(
                 QuickNavGridSection(
                     onItemClick = { title ->
                         when (title) {
-                            "改枪配装" -> {
-                                coroutineScope.launch {
-                                    listState.animateScrollToItem(4)
-                                    snackbarHostState.showSnackbar("已定位至热门改枪配装")
-                                }
-                            }
+                            "改枪配装" -> showHotGunsmithSheet = true
                             "制造利润" -> showCraftProfitSheet = true
                             "子弹收益" -> showBulletProfitSheet = true
                             "武器对比" -> showWeaponCompareSheet = true
@@ -237,9 +239,9 @@ fun HomeDashboardScreen(
                 Spacer(modifier = Modifier.height(6.dp))
                 SectionHeader(
                     title = "热门配装",
-                    actionText = "武器对比",
+                    actionText = "全部",
                     onMoreClick = {
-                        showWeaponCompareSheet = true
+                        showHotGunsmithSheet = true
                     }
                 )
             }
@@ -302,7 +304,7 @@ fun HomeDashboardScreen(
                         if (isCheckingUpdate) return@ProfileScreen
                         isCheckingUpdate = true
                         coroutineScope.launch {
-                            val res = appUpdateRepository.checkUpdate(currentVersionCode = 18)
+                            val res = appUpdateRepository.checkUpdate(currentVersionCode = 19)
                             isCheckingUpdate = false
                             if (res.isSuccess) {
                                 val info = res.getOrNull()
@@ -310,7 +312,7 @@ fun HomeDashboardScreen(
                                     updateInfo = info
                                     showUpdateDialog = true
                                 } else {
-                                    android.widget.Toast.makeText(context, "当前已是最新版本 (v2.8.8)", android.widget.Toast.LENGTH_SHORT).show()
+                                    android.widget.Toast.makeText(context, "当前已是最新版本 (v2.8.9)", android.widget.Toast.LENGTH_SHORT).show()
                                 }
                             } else {
                                 android.widget.Toast.makeText(context, "检查更新失败，请检查网络连接", android.widget.Toast.LENGTH_SHORT).show()
@@ -382,6 +384,18 @@ fun HomeDashboardScreen(
             WeaponCompareBottomSheet(
                 sheetState = weaponSheetState,
                 onDismissRequest = { showWeaponCompareSheet = false }
+            )
+        }
+
+        // 热门改枪配装·战术抄作业抽屉
+        if (showHotGunsmithSheet) {
+            HotGunsmithBottomSheet(
+                sheetState = hotGunsmithSheetState,
+                onDismissRequest = { showHotGunsmithSheet = false },
+                onCopyCode = { gun, code ->
+                    clipboardManager.setText(AnnotatedString(code))
+                    android.widget.Toast.makeText(context, "已复制 [$gun] 改枪码: $code", android.widget.Toast.LENGTH_SHORT).show()
+                }
             )
         }
 
@@ -630,7 +644,7 @@ private fun SectionHeader(
     }
 }
 
-/** 4. 热门配装板块 (双列枪械卡片，严格 1:1 还原参考图) */
+/** 4. 热门配装板块 (横向滚动武器卡片，高清透底大图 + 一键复制改枪码) */
 @Composable
 private fun HotGunsmithRow(
     onCardClick: (gun: String, code: String) -> Unit
@@ -638,25 +652,21 @@ private fun HotGunsmithRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
             .padding(horizontal = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        GunBuildCard(
-            gunName = "M4A1 • 稳定压制",
-            specs = "后坐力 -18% • 射程 42m",
-            gunTag = "M4A1",
-            buildCode = "M4A1-6824-TAC",
-            modifier = Modifier.weight(1f),
-            onClick = onCardClick
-        )
-        GunBuildCard(
-            gunName = "AX-50 • 远程点名",
-            specs = "开镜 0.32s • 射程 96m",
-            gunTag = "AX-50",
-            buildCode = "AX50-9041-HOT",
-            modifier = Modifier.weight(1f),
-            onClick = onCardClick
-        )
+        GunsmithBuildRepository.POPULAR_BUILDS.forEach { build ->
+            GunBuildCard(
+                gunName = build.gunName,
+                specs = build.specs,
+                gunTag = build.gunName.split(" ").firstOrNull() ?: "",
+                buildCode = build.buildCode,
+                imageUrl = build.imageUrl,
+                modifier = Modifier.width(176.dp),
+                onClick = onCardClick
+            )
+        }
     }
 }
 
@@ -666,6 +676,7 @@ private fun GunBuildCard(
     specs: String,
     gunTag: String,
     buildCode: String,
+    imageUrl: String = "",
     modifier: Modifier = Modifier,
     onClick: (gun: String, code: String) -> Unit
 ) {
@@ -676,21 +687,58 @@ private fun GunBuildCard(
         shape = RoundedCornerShape(18.dp)
     ) {
         Column(modifier = Modifier.padding(10.dp)) {
-            // 灰底枪械渲染方块 (严格 1:1 还原参考图灰底卡片)
+            // 枪械官方透底高清渲染图卡片
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(100.dp)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFFEEEEEE)),
+                    .background(Color(0xFFF8FAFC)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = gunTag,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFFAAAAAA)
-                )
+                if (imageUrl.isNotBlank()) {
+                    AsyncItemImage(
+                        url = imageUrl,
+                        contentDescription = gunName,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(8.dp),
+                        contentScale = ContentScale.Fit,
+                        fallback = {
+                            Text(
+                                text = gunTag,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFAAAAAA)
+                            )
+                        }
+                    )
+                } else {
+                    Text(
+                        text = gunTag,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFAAAAAA)
+                    )
+                }
+
+                // 左上角枪械Tag微标
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(6.dp)
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(Color.White.copy(alpha = 0.9f))
+                        .border(0.5.dp, Color(0xFFE2E8F0), RoundedCornerShape(5.dp))
+                        .padding(horizontal = 5.dp, vertical = 1.5.dp)
+                ) {
+                    Text(
+                        text = gunTag,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextSecondaryGray
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -710,6 +758,35 @@ private fun GunBuildCard(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // 改枪码胶囊条 (带复制图标)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFFF1F5F9))
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = buildCode,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TacticalDark,
+                    letterSpacing = 0.3.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(
+                    imageVector = Icons.Default.ContentCopy,
+                    contentDescription = "复制改枪码",
+                    tint = TextSecondaryGray,
+                    modifier = Modifier.size(12.dp)
+                )
+            }
             Spacer(modifier = Modifier.height(2.dp))
         }
     }
@@ -1146,23 +1223,48 @@ private fun WeaponCompareCard(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
+            val weaponImgUrl = GunsmithBuildRepository.getWeaponImageUrl(name)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = name,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimaryDark
-                )
-                Text(
-                    text = caliber,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = TextSecondaryGray
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    if (weaponImgUrl.isNotBlank()) {
+                        Box(
+                            modifier = Modifier
+                                .size(width = 60.dp, height = 34.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color.White)
+                                .padding(2.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            AsyncItemImage(
+                                url = weaponImgUrl,
+                                contentDescription = name,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Fit
+                            )
+                        }
+                    }
+                    Column {
+                        Text(
+                            text = name,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimaryDark
+                        )
+                        Text(
+                            text = caliber,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextSecondaryGray
+                        )
+                    }
+                }
             }
             Spacer(modifier = Modifier.height(8.dp))
             Row(

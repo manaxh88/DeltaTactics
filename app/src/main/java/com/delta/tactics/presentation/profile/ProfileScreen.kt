@@ -159,7 +159,7 @@ fun ProfileScreen(
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "当前版本: v2.8.8 (Build 18)",
+                            text = "当前版本: v2.8.9 (Build 19)",
                             fontSize = 12.sp,
                             color = TextSecondaryGray
                         )
@@ -219,7 +219,7 @@ fun ProfileScreen(
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = "三角洲助手 v2.8.8 (每日密码本地持久化版)",
+                            text = "三角洲战术助手 v2.8.9 (改枪配装抄作业版)",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimaryDark
@@ -227,7 +227,7 @@ fun ProfileScreen(
                     }
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "• 每日密码本地智能持久化缓存：当天启动免网络即开即显，零流量零延迟\n• 自动检测跨天刷新，次日自动同步最新密码并更新缓存\n• 解密中心新增密码状态与手动强制刷新能力\n• 苹果拟态液态玻璃常驻底栏精修优化",
+                        text = "• 热门配装全面升级官方高清透底武器渲染图，告别灰底文字方块\n• 枪械卡片新增改枪码胶囊条与一键复制按钮，主流方案即拷即用\n• 新增「热门改枪配装·战术抄作业」独立抽屉，多流派分类与配件明细\n• 鼠鼠卡战备配件清单全面上线官方装备/配件图与品质框\n• 卡战备方案新增「复制方案」功能，一键导出完整装配清单\n• 战术武器对比面板同步升级枪械高清图示",
                         fontSize = 12.sp,
                         color = TextSecondaryGray,
                         lineHeight = 20.sp
