@@ -39,6 +39,10 @@ import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.PrecisionManufacturing
 import com.delta.tactics.presentation.tasks.SeasonTasksScreen
 import com.delta.tactics.presentation.loadout.CardLoadoutScreen
+import com.delta.tactics.presentation.navigation.LiquidGlassBottomBar
+import com.delta.tactics.presentation.navigation.LiquidNavItem
+import com.delta.tactics.presentation.profile.ProfileScreen
+import com.delta.tactics.presentation.cipher.DecryptCenterScreen
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Dashboard
@@ -152,49 +156,27 @@ fun HomeDashboardScreen(
 
     val listState = rememberLazyListState()
     var currentNavTab by remember { mutableIntStateOf(0) }
-    var showMorseSheet by remember { mutableStateOf(false) }
     var showCraftProfitSheet by remember { mutableStateOf(false) }
     var showBulletProfitSheet by remember { mutableStateOf(false) }
     var showWeaponCompareSheet by remember { mutableStateOf(false) }
     var showKeyRoomsSheet by remember { mutableStateOf(false) }
-    var showProfileSheet by remember { mutableStateOf(false) }
-    var showSeasonTasksScreen by remember { mutableStateOf(false) }
-    var showCardLoadoutScreen by remember { mutableStateOf(false) }
-    val morseSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val craftSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val bulletSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val weaponSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val keyRoomsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val profileSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    BackHandler(enabled = showCardLoadoutScreen || showSeasonTasksScreen) {
-        if (showCardLoadoutScreen) {
-            showCardLoadoutScreen = false
-            currentNavTab = 0
-        } else if (showSeasonTasksScreen) {
-            showSeasonTasksScreen = false
-            currentNavTab = 0
-        }
+    val navItems = remember {
+        listOf(
+            LiquidNavItem("首页", Icons.Default.Home),
+            LiquidNavItem("卡战备", Icons.Default.MonetizationOn),
+            LiquidNavItem("任务", Icons.Default.Assignment),
+            LiquidNavItem("解密", Icons.Default.Lock),
+            LiquidNavItem("我的", Icons.Default.Person)
+        )
     }
 
-    if (showCardLoadoutScreen) {
-        CardLoadoutScreen(
-            onBack = {
-                showCardLoadoutScreen = false
-                currentNavTab = 0
-            }
-        )
-        return
-    }
-
-    if (showSeasonTasksScreen) {
-        SeasonTasksScreen(
-            onBack = {
-                showSeasonTasksScreen = false
-                currentNavTab = 0
-            }
-        )
-        return
+    BackHandler(enabled = currentNavTab != 0) {
+        currentNavTab = 0
     }
 
     Box(
@@ -204,19 +186,22 @@ fun HomeDashboardScreen(
     ) {
         val navBarsBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 100.dp + navBarsBottomPadding)
-        ) {
-            // 1. 顶部问候栏 (猫猫头像+问候语+纯圆搜索按钮，去掉通知)
-            item {
-                TopGreetingHeader(
-                    onSearchClick = {
-                        coroutineScope.launch { snackbarHostState.showSnackbar("开启战术全局搜索") }
+        when (currentNavTab) {
+            0 -> {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 110.dp + navBarsBottomPadding)
+                ) {
+                    // 1. 顶部问候栏 (猫猫头像+问候语+纯圆搜索按钮，去掉通知)
+                    item {
+                        TopGreetingHeader(
+                            onAvatarClick = { currentNavTab = 4 },
+                            onSearchClick = {
+                                coroutineScope.launch { snackbarHostState.showSnackbar("开启战术全局搜索") }
+                            }
+                        )
                     }
-                )
-            }
 
             // 2. 每日密码板块 (置顶纯展示：仅地图名与密码，去掉点位与跳转)
             item {
@@ -297,52 +282,70 @@ fun HomeDashboardScreen(
                 }
             }
         }
-
-        // 浮动黑色胶囊导航栏 (卡战备/任务/解密/我的 独立直达，不与主页信息流重复堆叠)
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-        ) {
-            FloatingPillBottomBar(
-                selectedTab = currentNavTab,
-                onTabSelected = { tab ->
-                    currentNavTab = tab
-                    when (tab) {
-                        0 -> {} // 首页
-                        1 -> showCardLoadoutScreen = true
-                        2 -> showSeasonTasksScreen = true
-                        3 -> showMorseSheet = true
-                        4 -> showProfileSheet = true
+    }
+    1 -> {
+                CardLoadoutScreen(
+                    onBack = { currentNavTab = 0 }
+                )
+            }
+            2 -> {
+                SeasonTasksScreen(
+                    onBack = { currentNavTab = 0 }
+                )
+            }
+            3 -> {
+                DecryptCenterScreen(
+                    viewModel = viewModel,
+                    onShowToast = { msg ->
+                        android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
                     }
-                }
-            )
+                )
+            }
+            4 -> {
+                ProfileScreen(
+                    isCheckingUpdate = isCheckingUpdate,
+                    onCheckUpdate = {
+                        if (isCheckingUpdate) return@ProfileScreen
+                        isCheckingUpdate = true
+                        coroutineScope.launch {
+                            val res = appUpdateRepository.checkUpdate(currentVersionCode = 15)
+                            isCheckingUpdate = false
+                            if (res.isSuccess) {
+                                val info = res.getOrNull()
+                                if (info != null && info.hasUpdate) {
+                                    updateInfo = info
+                                    showUpdateDialog = true
+                                } else {
+                                    android.widget.Toast.makeText(context, "当前已是最新版本 (v2.8.5)", android.widget.Toast.LENGTH_SHORT).show()
+                                    snackbarHostState.showSnackbar("当前已是最新版本 (v2.8.5)")
+                                }
+                            } else {
+                                android.widget.Toast.makeText(context, "检查更新失败，请检查网络连接", android.widget.Toast.LENGTH_SHORT).show()
+                                snackbarHostState.showSnackbar("检查更新失败，请检查网络连接")
+                            }
+                        }
+                    }
+                )
+            }
         }
+
+        // 常驻液态玻璃样式底部导航栏 (全页面常驻)
+        LiquidGlassBottomBar(
+            items = navItems,
+            selectedTab = currentNavTab,
+            onTabSelected = { tab ->
+                currentNavTab = tab
+            },
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
 
         // 浮动提示条，位于胶囊底栏上方
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 96.dp + navBarsBottomPadding)
+                .padding(bottom = 90.dp + navBarsBottomPadding)
         )
-
-        // 局内门锁摩斯电码智能解密抽屉
-        if (showMorseSheet) {
-            MorseCodeBottomSheet(
-                sheetState = morseSheetState,
-                onDismissRequest = {
-                    showMorseSheet = false
-                    currentNavTab = 0
-                },
-                onCopy = { code ->
-                    clipboardManager.setText(AnnotatedString(code))
-                    coroutineScope.launch {
-                        snackbarHostState.showSnackbar("已复制解码密码: $code")
-                    }
-                }
-            )
-        }
 
         // 特勤处工作台制造利润抽屉
         if (showCraftProfitSheet) {
@@ -375,39 +378,6 @@ fun HomeDashboardScreen(
             KeyRoomsBottomSheet(
                 sheetState = keyRoomsSheetState,
                 onDismissRequest = { showKeyRoomsSheet = false }
-            )
-        }
-
-        // 个人中心与关于抽屉 (底栏我的)
-        if (showProfileSheet) {
-            ProfileBottomSheet(
-                sheetState = profileSheetState,
-                isCheckingUpdate = isCheckingUpdate,
-                onCheckUpdate = {
-                    if (isCheckingUpdate) return@ProfileBottomSheet
-                    isCheckingUpdate = true
-                    coroutineScope.launch {
-                        val res = appUpdateRepository.checkUpdate(currentVersionCode = 15)
-                        isCheckingUpdate = false
-                        if (res.isSuccess) {
-                            val info = res.getOrNull()
-                            if (info != null && info.hasUpdate) {
-                                updateInfo = info
-                                showUpdateDialog = true
-                            } else {
-                                android.widget.Toast.makeText(context, "当前已是最新版本 (v2.8.5)", android.widget.Toast.LENGTH_SHORT).show()
-                                snackbarHostState.showSnackbar("当前已是最新版本 (v2.8.5)")
-                            }
-                        } else {
-                            android.widget.Toast.makeText(context, "检查更新失败，请检查网络连接", android.widget.Toast.LENGTH_SHORT).show()
-                            snackbarHostState.showSnackbar("检查更新失败，请检查网络连接")
-                        }
-                    }
-                },
-                onDismissRequest = {
-                    showProfileSheet = false
-                    currentNavTab = 0
-                }
             )
         }
 
@@ -456,6 +426,7 @@ fun HomeDashboardScreen(
 /** 1. 顶部问候栏 (严格正圆搜索按钮，已移除通知) */
 @Composable
 private fun TopGreetingHeader(
+    onAvatarClick: () -> Unit,
     onSearchClick: () -> Unit
 ) {
     Row(
@@ -470,7 +441,7 @@ private fun TopGreetingHeader(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // 圆形猫猫头像 (用户指定图标)
+            // 圆形猫猫头像 (用户指定图标，点击可切换至我的)
             Image(
                 painter = painterResource(id = R.drawable.cat_avatar),
                 contentDescription = "用户头像",
@@ -478,6 +449,7 @@ private fun TopGreetingHeader(
                 modifier = Modifier
                     .size(46.dp)
                     .clip(CircleShape)
+                    .clickable { onAvatarClick() }
             )
 
             Column {
@@ -530,216 +502,6 @@ private fun CircleHeaderButton(
     }
 }
 
-/** 摩斯电码智能解密器抽屉组件 (同步自鼠鼠点饭 fun/morseCode) */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun MorseCodeBottomSheet(
-    sheetState: SheetState,
-    onDismissRequest: () -> Unit,
-    onCopy: (String) -> Unit
-) {
-    var morseInput by remember { mutableStateOf("") }
-    var decodedResult by remember { mutableStateOf("") }
-
-    val morseDict = remember {
-        mapOf(
-            ".----" to "1",
-            "..---" to "2",
-            "...--" to "3",
-            "....-" to "4",
-            "....." to "5",
-            "-...." to "6",
-            "--..." to "7",
-            "---.." to "8",
-            "----." to "9",
-            "-----" to "0"
-        )
-    }
-
-    ModalBottomSheet(
-        onDismissRequest = onDismissRequest,
-        sheetState = sheetState,
-        containerColor = CardWhite,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 36.dp)
-        ) {
-            Text(
-                text = "局内门锁摩斯解密器",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimaryDark
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "站门前听声音：短音为滴(•)，长音为嗒(-)。每5音自动解码1位数字",
-                style = MaterialTheme.typography.bodySmall,
-                color = TextSecondaryGray
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 实时解码展示框
-            Surface(
-                color = IconCircleBg,
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = if (morseInput.isEmpty()) "点击下方按键输入电码" else morseInput,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = if (morseInput.isEmpty()) TextSecondaryGray else TextPrimaryDark,
-                        letterSpacing = 2.sp
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Text(
-                            text = "解码结果: ",
-                            fontSize = 14.sp,
-                            color = TextSecondaryGray
-                        )
-                        Text(
-                            text = decodedResult.ifEmpty { "----" },
-                            fontSize = 32.sp,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 4.sp,
-                            color = if (decodedResult.isNotEmpty()) Color(0xFFE65100) else TextSecondaryGray
-                        )
-                        if (decodedResult.isNotEmpty()) {
-                            IconButton(onClick = { onCopy(decodedResult) }) {
-                                Icon(
-                                    imageVector = Icons.Default.ContentCopy,
-                                    contentDescription = "复制密码",
-                                    tint = TextPrimaryDark
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 操作按键区：滴(•)、嗒(-)、下一个数字、清空
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Button(
-                    onClick = {
-                        val currentUnit = morseInput.split(" ").lastOrNull() ?: ""
-                        if (currentUnit.length < 5) {
-                            morseInput += "•"
-                            val unit = morseInput.split(" ").last()
-                            val mapped = unit.replace("•", ".").replace("-", "-")
-                            if (unit.length == 5) {
-                                val digit = morseDict[mapped] ?: "?"
-                                decodedResult += digit
-                                morseInput += " "
-                            }
-                        }
-                    },
-                    modifier = Modifier.weight(1f).height(50.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF1E2024),
-                        contentColor = Color.White
-                    )
-                ) {
-                    Text("• 滴 (短音)", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                }
-
-                Button(
-                    onClick = {
-                        val currentUnit = morseInput.split(" ").lastOrNull() ?: ""
-                        if (currentUnit.length < 5) {
-                            morseInput += "-"
-                            val unit = morseInput.split(" ").last()
-                            val mapped = unit.replace("•", ".").replace("-", "-")
-                            if (unit.length == 5) {
-                                val digit = morseDict[mapped] ?: "?"
-                                decodedResult += digit
-                                morseInput += " "
-                            }
-                        }
-                    },
-                    modifier = Modifier.weight(1f).height(50.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF1E2024),
-                        contentColor = Color.White
-                    )
-                ) {
-                    Text("- 嗒 (长音)", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                OutlinedButton(
-                    onClick = {
-                        if (morseInput.isNotEmpty() && !morseInput.endsWith(" ")) {
-                            val unit = morseInput.split(" ").last()
-                            val mapped = unit.replace("•", ".").replace("-", "-")
-                            val digit = morseDict[mapped] ?: "?"
-                            decodedResult += digit
-                            morseInput += " "
-                        }
-                    },
-                    modifier = Modifier.weight(1f).height(44.dp),
-                    shape = RoundedCornerShape(14.dp)
-                ) {
-                    Text("下一位数字", fontSize = 13.sp)
-                }
-
-                OutlinedButton(
-                    onClick = {
-                        morseInput = ""
-                        decodedResult = ""
-                    },
-                    modifier = Modifier.weight(1f).height(44.dp),
-                    shape = RoundedCornerShape(14.dp)
-                ) {
-                    Text("清空重置", fontSize = 13.sp, color = Color(0xFFD32F2F))
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 0-9 电码速查口诀
-            Text(
-                text = "官方数字摩斯电码对照表：",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimaryDark
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = "1: •----   2: ••---   3: •••--   4: ••••-   5: •••••\n6: -••••   7: --•••   8: ---••   9: ----•   0: -----",
-                fontFamily = FontFamily.Monospace,
-                fontSize = 12.sp,
-                lineHeight = 18.sp,
-                color = TextSecondaryGray
-            )
-        }
-    }
-}
 
 /** 3. 4 格快捷功能金刚区 (四大战术工具，无重复冲突) */
 @Composable
@@ -1096,100 +858,6 @@ private fun TacticalNewsRow(
     }
 }
 
-/** 7. 底部黑色浮动胶囊导航栏 (严格 1:1 还原参考图底栏) */
-@Composable
-private fun FloatingPillBottomBar(
-    selectedTab: Int,
-    onTabSelected: (Int) -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .navigationBarsPadding()
-            .padding(horizontal = 24.dp, vertical = 12.dp)
-            .graphicsLayer { },
-        contentAlignment = Alignment.Center
-    ) {
-        Surface(
-            color = Color(0xFF1A1D21),
-            shape = RoundedCornerShape(32.dp),
-            shadowElevation = 8.dp,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(60.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 10.dp),
-                horizontalArrangement = Arrangement.SpaceAround,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                PillNavItem(
-                    title = "首页",
-                    icon = Icons.Default.Home,
-                    isSelected = selectedTab == 0,
-                    onClick = { onTabSelected(0) }
-                )
-                PillNavItem(
-                    title = "卡战备",
-                    icon = Icons.Default.MonetizationOn,
-                    isSelected = selectedTab == 1,
-                    onClick = { onTabSelected(1) }
-                )
-                PillNavItem(
-                    title = "任务",
-                    icon = Icons.Default.Assignment,
-                    isSelected = selectedTab == 2,
-                    onClick = { onTabSelected(2) }
-                )
-                PillNavItem(
-                    title = "解密",
-                    icon = Icons.Default.Lock,
-                    isSelected = selectedTab == 3,
-                    onClick = { onTabSelected(3) }
-                )
-                PillNavItem(
-                    title = "我的",
-                    icon = Icons.Default.AccountCircle,
-                    isSelected = selectedTab == 4,
-                    onClick = { onTabSelected(4) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PillNavItem(
-    title: String,
-    icon: ImageVector,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .clickable { onClick() }
-            .padding(horizontal = 10.dp, vertical = 6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = title,
-            tint = if (isSelected) Color.White else Color(0xFF888E9B),
-            modifier = Modifier.size(20.dp)
-        )
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(
-            text = title,
-            fontSize = 11.sp,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-            color = if (isSelected) Color.White else Color(0xFF888E9B)
-        )
-    }
-}
 
 /** 首页 S11 赛季任务推荐大白卡 */
 @Composable
@@ -1643,161 +1311,3 @@ private fun KeyRoomCard(
     }
 }
 
-/** 个人中心抽屉 */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ProfileBottomSheet(
-    sheetState: SheetState,
-    isCheckingUpdate: Boolean,
-    onCheckUpdate: () -> Unit,
-    onDismissRequest: () -> Unit
-) {
-    ModalBottomSheet(
-        onDismissRequest = onDismissRequest,
-        sheetState = sheetState,
-        containerColor = CardWhite,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 36.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.cat_avatar),
-                    contentDescription = "指挥官头像",
-                    modifier = Modifier
-                        .size(54.dp)
-                        .clip(CircleShape)
-                        .border(2.dp, Color(0xFFE2E8F0), CircleShape),
-                    contentScale = ContentScale.Crop
-                )
-                Column {
-                    Text(
-                        text = "三角洲特战指挥官",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimaryDark
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "ID: 95273418 • 微信/QQ全服互通",
-                        fontSize = 12.sp,
-                        color = TextSecondaryGray
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            Surface(
-                color = IconCircleBg,
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Text(
-                        text = "三角洲助手 v2.8.5 (避难所套利版)",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimaryDark
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "• 特勤处制造利润榜：防具/弹药/医疗/枪械 4 大工作台利润与时薪实时测算\n• 高级子弹自选包套利：3~5 级子弹自选包价值排行榜与首选推荐\n• 精简架构：彻底移除冗余战绩，全界面 60/120 FPS 满帧极速丝滑",
-                        fontSize = 12.sp,
-                        lineHeight = 18.sp,
-                        color = TextSecondaryGray
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // 在线版本检查与更新卡片
-            Surface(
-                color = CardWhite,
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, Color(0xFFF1F5F9), RoundedCornerShape(16.dp))
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Text(
-                                text = "在线版本检查",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimaryDark
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(Color(0xFFE8F5E9))
-                                    .padding(horizontal = 5.dp, vertical = 1.dp)
-                            ) {
-                                Text(
-                                    text = "GitHub",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Color(0xFF2E7D32)
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(3.dp))
-                        Text(
-                            text = "当前版本: v2.8.5 (Build 15)",
-                            fontSize = 11.sp,
-                            color = TextSecondaryGray
-                        )
-                    }
-
-                    Button(
-                        onClick = onCheckUpdate,
-                        enabled = !isCheckingUpdate,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = TacticalOrange,
-                            contentColor = Color.White
-                        ),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                        modifier = Modifier.height(36.dp)
-                    ) {
-                        if (isCheckingUpdate) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                color = Color.White,
-                                strokeWidth = 2.dp
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(text = "检查中", fontSize = 12.sp)
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.Sync,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = "检查更新", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
