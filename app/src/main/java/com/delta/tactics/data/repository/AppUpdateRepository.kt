@@ -17,6 +17,12 @@ import java.net.URL
 
 class AppUpdateRepository(private val context: Context) {
 
+    // Only proxy this project's release assets; already accelerated URLs remain unchanged.
+    private fun acceleratedApkUrl(url: String): String =
+        if (url.startsWith("https://github.com/manaxh88/DeltaTactics/releases/download/")) {
+            "https://ghfast.top/$url"
+        } else url
+
     private val githubApiUrl = "https://api.github.com/repos/manaxh88/DeltaTactics/releases/latest"
     private val cdnManifestUrl = "https://fastly.jsdelivr.net/gh/manaxh88/DeltaTactics@main/version.json"
     private val rawManifestUrl = "https://raw.githubusercontent.com/manaxh88/DeltaTactics/main/version.json"
@@ -96,7 +102,7 @@ class AppUpdateRepository(private val context: Context) {
                     versionName = tagName.ifBlank { "最新版" },
                     title = releaseTitle,
                     changelog = releaseNotes,
-                    apkUrl = apkUrl,
+                    apkUrl = acceleratedApkUrl(apkUrl),
                     browserUrl = browserUrl,
                     forceUpdate = false,
                     hasUpdate = hasUpdate
@@ -138,7 +144,7 @@ class AppUpdateRepository(private val context: Context) {
                     versionName = versionName,
                     title = title,
                     changelog = changelog,
-                    apkUrl = apkUrl,
+                    apkUrl = acceleratedApkUrl(apkUrl),
                     browserUrl = browserUrl,
                     forceUpdate = forceUpdate,
                     hasUpdate = targetCode > currentVersionCode
