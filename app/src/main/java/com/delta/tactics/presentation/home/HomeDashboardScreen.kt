@@ -30,24 +30,14 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Adjust
-import androidx.compose.material.icons.filled.Assignment
-import androidx.compose.material.icons.filled.CompareArrows
-import androidx.compose.material.icons.filled.MilitaryTech
-import androidx.compose.material.icons.filled.MonetizationOn
-import androidx.compose.material.icons.filled.PrecisionManufacturing
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import com.delta.tactics.presentation.tasks.SeasonTasksScreen
 import com.delta.tactics.presentation.loadout.CardLoadoutScreen
 import com.delta.tactics.presentation.navigation.LiquidGlassBottomBar
 import com.delta.tactics.presentation.navigation.LiquidNavItem
 import com.delta.tactics.presentation.profile.ProfileScreen
 import com.delta.tactics.presentation.cipher.DecryptCenterScreen
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
@@ -167,11 +157,11 @@ fun HomeDashboardScreen(
 
     val navItems = remember {
         listOf(
-            LiquidNavItem("首页", Icons.Default.Home),
-            LiquidNavItem("卡战备", Icons.Default.MonetizationOn),
-            LiquidNavItem("任务", Icons.Default.Assignment),
-            LiquidNavItem("解密", Icons.Default.Lock),
-            LiquidNavItem("我的", Icons.Default.Person)
+            LiquidNavItem("首页", Icons.Outlined.Home, Icons.Filled.Home),
+            LiquidNavItem("卡战备", Icons.Outlined.MonetizationOn, Icons.Filled.MonetizationOn),
+            LiquidNavItem("任务", Icons.Outlined.Assignment, Icons.Filled.Assignment),
+            LiquidNavItem("解密", Icons.Outlined.Lock, Icons.Filled.Lock),
+            LiquidNavItem("我的", Icons.Outlined.Person, Icons.Filled.Person)
         )
     }
 
