@@ -2,6 +2,7 @@ package com.delta.tactics.presentation.navigation
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -63,14 +64,15 @@ data class LiquidNavItem(
 )
 
 /**
- * 液态玻璃质感常驻底部导航栏 (Liquid Glass Bottom Bar)
+ * 白色拟态液态玻璃常驻底栏 (White Liquid Glass Bottom Bar)
  *
- * 特性：
- * 1. 拟态玻璃多层半透明渐变（Glassmorphic translucent gradient layers）
- * 2. 顶部 1px 镜面反射高光线（Specular Highlight）
- * 3. 棱镜微折射渐变描边（Refractive border）
- * 4. 弹性物理水滴位移动画（Fluid spring droplet indicator）
- * 5. 选中项流体光晕（Radial Orange Glow）与弹性缩放
+ * 核心设计：
+ * 1. 拟态玻璃多层半透明质感（Glassmorphic translucent gradient layers, 85%~92% 通透乳白）
+ * 2. 顶部 1.5px 镜面反射高光弧（Specular Highlight Rim）
+ * 3. 棱镜微折射渐变描边（Refractive glass border）
+ * 4. 绝对严格对称的水滴流体胶囊（100% 同容器同系坐标，彻底消除左右偏心与不对称）
+ * 5. 凸透镜水滴拟态（水滴浮起微阴影 + 表面张力水珠边缘 + 顶部微高光弧）
+ * 6. 黑色高对比度字体与图标（深黑 #0F172A，清晰优雅）
  */
 @Composable
 fun LiquidGlassBottomBar(
@@ -89,16 +91,15 @@ fun LiquidGlassBottomBar(
         currentSelectedIndex = selectedTab
     }
 
-    // 记录各 Tab 项在父容器中的中心水平坐标和宽度
-    val itemCenterXs = remember { mutableStateMapOf<Int, Float>() }
-    val itemWidths = remember { mutableStateMapOf<Int, Float>() }
+    // 记录各 Tab 项在相同容器中的精确中心水平坐标
+    val itemCenterXs = remember { mutableStateMapOf<Int, Dp>() }
 
     val targetCenterX = remember(currentSelectedIndex, itemCenterXs.toMap()) {
-        itemCenterXs[currentSelectedIndex] ?: 0f
+        itemCenterXs[currentSelectedIndex] ?: 0.dp
     }
 
-    // 水滴指示器水平中心 X 坐标的弹性动画 (阻尼 0.72 带来有机流体回弹质感)
-    val animatedCenterX by animateFloatAsState(
+    // 水滴指示器水平中心 X 坐标的弹性物理动画 (阻尼 0.72 带来水滴拉伸与平滑停靠质感)
+    val animatedCenterX by animateDpAsState(
         targetValue = targetCenterX,
         animationSpec = spring(
             dampingRatio = 0.72f,
@@ -114,103 +115,164 @@ fun LiquidGlassBottomBar(
             .padding(horizontal = 18.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {
-        // 外层柔和弥散阴影与高透白玉质感容器
+        // 外层柔和弥散阴影与白色半透明液态玻璃容器
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(barHeight)
                 .shadow(
-                    elevation = 16.dp,
+                    elevation = 18.dp,
                     shape = RoundedCornerShape(33.dp),
-                    spotColor = Color(0x2B0F172A),
-                    ambientColor = Color(0x0F0F172A)
+                    spotColor = Color(0x380F172A),
+                    ambientColor = Color(0x180F172A)
                 )
                 .clip(RoundedCornerShape(33.dp))
-                // 纯正高雅的白色质感底色 (遮蔽底层文字重叠，告别杂乱)
+                // 白色半透明液态玻璃多层渐变 (85%~92% 通透乳白毛玻璃质感)
                 .background(
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            Color(0xFFFFFFFF),
-                            Color(0xFFF9FAFB)
+                            Color.White.copy(alpha = 0.92f),
+                            Color(0xFFF8FAFC).copy(alpha = 0.85f),
+                            Color.White.copy(alpha = 0.89f)
                         )
                     )
                 )
-                // 极简微灰棱镜描边
+                // 玻璃边缘折射描边 (顶部纯白光照，底部浅灰自然收敛)
                 .border(
-                    BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                    BorderStroke(
+                        width = 1.2.dp,
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.White,
+                                Color.White.copy(alpha = 0.70f),
+                                Color(0xFFCBD5E1).copy(alpha = 0.45f)
+                            )
+                        )
+                    ),
                     shape = RoundedCornerShape(33.dp)
                 )
         ) {
-            // 顶部 1px 镜面受光反光线 (Specular Glass Top Rim)
+            // 顶部 1.5px 镜面受光反光线 (Specular Glass Top Rim)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(1.dp)
+                    .height(1.5.dp)
                     .align(Alignment.TopCenter)
                     .padding(horizontal = 24.dp)
                     .background(
                         brush = Brush.horizontalGradient(
                             colors = listOf(
                                 Color.Transparent,
+                                Color.White.copy(alpha = 0.45f),
                                 Color.White,
-                                Color.White,
+                                Color.White.copy(alpha = 0.45f),
                                 Color.Transparent
                             )
                         )
                     )
             )
 
-            // 液态流体水滴胶囊指示器 (无外描边、纯净温润浅灰胶囊，顺滑滑移)
-            if (animatedCenterX > 0f || currentSelectedIndex == 0) {
-                val blobWidth = 50.dp
-                val blobHeight = 48.dp
-                val blobWidthPx = with(density) { blobWidth.toPx() }
-                val blobLeftPx = animatedCenterX - (blobWidthPx / 2f)
-
-                if (blobLeftPx >= 0f) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .offset(x = with(density) { blobLeftPx.toDp() })
-                            .width(blobWidth)
-                            .height(blobHeight)
-                            .clip(RoundedCornerShape(16.dp))
-                            // 无描边纯净流体背景
-                            .background(Color(0xFFF1F5F9))
-                    )
-                }
-            }
-
-            // Tab 图标与标签列表 (两侧预留 8dp 内边距，避免端项碰撞圆角)
-            Row(
+            // 【关键对称架构】Tab 核心容器（水滴指示器与 Tab 列表处于同一个直接父容器内，坐标 100% 绝对一致，严格消除偏移不对称）
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.SpaceAround,
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 8.dp)
             ) {
-                items.forEachIndexed { index, item ->
-                    val isSelected = index == currentSelectedIndex
+                // 液态流体水滴凸透镜指示器 (严格居中对齐选中项)
+                if (animatedCenterX > 0.dp) {
+                    val blobWidth = 54.dp
+                    val blobHeight = 46.dp
+                    val blobLeft = animatedCenterX - (blobWidth / 2f)
 
-                    LiquidNavItemView(
-                        item = item,
-                        isSelected = isSelected,
-                        activeColor = activeColor,
-                        inactiveColor = inactiveColor,
-                        onClick = {
-                            if (currentSelectedIndex != index) {
-                                currentSelectedIndex = index
-                                onTabSelected(index)
-                            }
-                        },
-                        onPositioned = { centerX, width ->
-                            itemCenterXs[index] = centerX
-                            itemWidths[index] = width
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                    )
+                    if (blobLeft >= 0.dp) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.CenterStart)
+                                .offset(x = blobLeft)
+                                .width(blobWidth)
+                                .height(blobHeight)
+                                // 液态水滴凸起立体阴影
+                                .shadow(
+                                    elevation = 4.dp,
+                                    shape = RoundedCornerShape(23.dp),
+                                    spotColor = Color(0x280F172A),
+                                    ambientColor = Color(0x100F172A)
+                                )
+                                .clip(RoundedCornerShape(23.dp))
+                                // 水滴凸透镜通透渐变
+                                .background(
+                                    brush = Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.White.copy(alpha = 0.96f),
+                                            Color(0xFFF8FAFC).copy(alpha = 0.88f),
+                                            Color(0xFFE2E8F0).copy(alpha = 0.72f)
+                                        )
+                                    )
+                                )
+                                // 水滴表面张力水珠晶莹边缘
+                                .border(
+                                    BorderStroke(
+                                        width = 1.dp,
+                                        brush = Brush.verticalGradient(
+                                            colors = listOf(
+                                                Color.White,
+                                                Color.White.copy(alpha = 0.75f),
+                                                Color(0xFFCBD5E1).copy(alpha = 0.40f)
+                                            )
+                                        )
+                                    ),
+                                    shape = RoundedCornerShape(23.dp)
+                                )
+                        ) {
+                            // 水滴顶部 1px 晶莹微弧高光
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(1.dp)
+                                    .align(Alignment.TopCenter)
+                                    .padding(horizontal = 10.dp)
+                                    .background(
+                                        brush = Brush.horizontalGradient(
+                                            colors = listOf(
+                                                Color.Transparent,
+                                                Color.White,
+                                                Color.Transparent
+                                            )
+                                        )
+                                    )
+                            )
+                        }
+                    }
+                }
+
+                // Tab 图标与标签列表（在同级容器中铺满，子项中心坐标直传水滴）
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.SpaceAround,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    items.forEachIndexed { index, item ->
+                        val isSelected = index == currentSelectedIndex
+
+                        LiquidNavItemView(
+                            item = item,
+                            isSelected = isSelected,
+                            activeColor = activeColor,
+                            inactiveColor = inactiveColor,
+                            onClick = {
+                                if (currentSelectedIndex != index) {
+                                    currentSelectedIndex = index
+                                    onTabSelected(index)
+                                }
+                            },
+                            onPositioned = { centerDp ->
+                                itemCenterXs[index] = centerDp
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                        )
+                    }
                 }
             }
         }
@@ -224,12 +286,14 @@ private fun LiquidNavItemView(
     activeColor: Color,
     inactiveColor: Color,
     onClick: () -> Unit,
-    onPositioned: (centerX: Float, width: Float) -> Unit,
+    onPositioned: (centerDp: Dp) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val density = LocalDensity.current
+
     // 仅针对图标进行细腻弹性微缩放，文字保持稳定清晰
     val iconScale by animateFloatAsState(
-        targetValue = if (isSelected) 1.08f else 1.0f,
+        targetValue = if (isSelected) 1.10f else 1.0f,
         animationSpec = spring(
             dampingRatio = 0.70f,
             stiffness = Spring.StiffnessMediumLow
@@ -259,7 +323,8 @@ private fun LiquidNavItemView(
             .onGloballyPositioned { coordinates ->
                 val posX = coordinates.positionInParent().x
                 val width = coordinates.size.width.toFloat()
-                onPositioned(posX + (width / 2f), width)
+                val centerDp = with(density) { (posX + (width / 2f)).toDp() }
+                onPositioned(centerDp)
             },
         contentAlignment = Alignment.Center
     ) {
