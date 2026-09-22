@@ -311,11 +311,9 @@ fun HomeDashboardScreen(
                                     showUpdateDialog = true
                                 } else {
                                     android.widget.Toast.makeText(context, "当前已是最新版本 (v2.8.8)", android.widget.Toast.LENGTH_SHORT).show()
-                                    snackbarHostState.showSnackbar("当前已是最新版本 (v2.8.8)")
                                 }
                             } else {
                                 android.widget.Toast.makeText(context, "检查更新失败，请检查网络连接", android.widget.Toast.LENGTH_SHORT).show()
-                                snackbarHostState.showSnackbar("检查更新失败，请检查网络连接")
                             }
                         }
                     }
