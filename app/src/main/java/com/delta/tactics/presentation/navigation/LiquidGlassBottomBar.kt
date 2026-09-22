@@ -79,16 +79,14 @@ fun LiquidGlassBottomBar(
     onTabSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
     barHeight: Dp = 64.dp,
-    activeColor: Color = TacticalOrange,
-    inactiveColor: Color = Color.White.copy(alpha = 0.58f)
+    activeColor: Color = Color(0xFF0F172A),
+    inactiveColor: Color = Color(0xFF64748B)
 ) {
     val density = LocalDensity.current
     var currentSelectedIndex by remember { mutableIntStateOf(selectedTab) }
 
-    LaunchedEffect(selectedTab) {
-        if (currentSelectedIndex != selectedTab) {
-            currentSelectedIndex = selectedTab
-        }
+    if (currentSelectedIndex != selectedTab) {
+        currentSelectedIndex = selectedTab
     }
 
     // 记录各 Tab 项在父容器中的中心水平坐标和宽度
@@ -122,31 +120,31 @@ fun LiquidGlassBottomBar(
                 .fillMaxWidth()
                 .height(barHeight)
                 .shadow(
-                    elevation = 18.dp,
+                    elevation = 20.dp,
                     shape = RoundedCornerShape(32.dp),
-                    spotColor = Color(0x88000000),
-                    ambientColor = Color(0x33000000)
+                    spotColor = Color(0x380F172A),
+                    ambientColor = Color(0x140F172A)
                 )
                 .clip(RoundedCornerShape(32.dp))
-                // 玻璃多层半透明渐变底色
+                // 白色半透明液态玻璃多层渐变
                 .background(
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            Color(0xEB1D222A), // 顶部略微受光
-                            Color(0xD9161920), // 中段通透
-                            Color(0xCC0F1116)  // 底部深邃
+                            Color(0xFAFFFFFF), // 顶部高透纯白
+                            Color(0xF2FFFFFF), // 中段通透乳白
+                            Color(0xF7F8FAFC)  // 底部厚实质感白
                         )
                     )
                 )
-                // 玻璃边缘折射描边 (顶部受光明显，底部收敛)
+                // 玻璃边缘折射描边 (顶部白光，底部微灰)
                 .border(
                     BorderStroke(
                         width = 1.dp,
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                Color.White.copy(alpha = 0.32f),
-                                Color.White.copy(alpha = 0.08f),
-                                Color.White.copy(alpha = 0.18f)
+                                Color.White,
+                                Color(0xFFE2E8F0).copy(alpha = 0.85f),
+                                Color(0xFFCBD5E1).copy(alpha = 0.60f)
                             )
                         )
                     ),
@@ -163,8 +161,8 @@ fun LiquidGlassBottomBar(
                         brush = Brush.horizontalGradient(
                             colors = listOf(
                                 Color.Transparent,
-                                Color.White.copy(alpha = 0.42f),
-                                Color.White.copy(alpha = 0.20f),
+                                Color.White,
+                                Color.White.copy(alpha = 0.95f),
                                 Color.Transparent
                             )
                         )
@@ -173,7 +171,7 @@ fun LiquidGlassBottomBar(
 
             // 液态流体水滴胶囊指示器 (跟着选中的 Tab 滑移)
             if (animatedCenterX > 0f || currentSelectedIndex == 0) {
-                val blobWidth = 56.dp
+                val blobWidth = 58.dp
                 val blobHeight = 44.dp
                 val blobWidthPx = with(density) { blobWidth.toPx() }
                 val blobLeftPx = animatedCenterX - (blobWidthPx / 2f)
@@ -186,24 +184,25 @@ fun LiquidGlassBottomBar(
                             .width(blobWidth)
                             .height(blobHeight)
                             .clip(RoundedCornerShape(22.dp))
-                            // 水滴流体光晕渐变
+                            // 白色液态玻璃上的水滴底色 (温润的浅灰胶囊与微晕)
                             .background(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        activeColor.copy(alpha = 0.38f),
-                                        activeColor.copy(alpha = 0.14f),
+                                        Color(0xFF0F172A).copy(alpha = 0.08f),
+                                        Color(0xFF0F172A).copy(alpha = 0.03f),
                                         Color.Transparent
                                     ),
                                     radius = with(density) { 36.dp.toPx() }
                                 )
                             )
+                            .background(Color(0xFFF1F5F9).copy(alpha = 0.80f))
                             // 水滴微光内线
                             .border(
                                 width = 1.dp,
                                 brush = Brush.verticalGradient(
                                     colors = listOf(
-                                        activeColor.copy(alpha = 0.40f),
-                                        Color.Transparent
+                                        Color(0xFFCBD5E1).copy(alpha = 0.80f),
+                                        Color(0xFFE2E8F0).copy(alpha = 0.40f)
                                     )
                                 ),
                                 shape = RoundedCornerShape(22.dp)
