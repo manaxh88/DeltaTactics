@@ -37,6 +37,7 @@ val WinRateArcGray = Color(0xFFE5E7EB)
 
 // 兼容色别名
 val TacticalBlack = Color(0xFF121417)
+val TacticalDark = Color(0xFF1E293B)
 val TacticalSurface = CardWhite
 val TacticalSurfaceVariant = BadgeGrayBg
 val TacticalBorder = CardBorderLight
