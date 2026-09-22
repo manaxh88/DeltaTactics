@@ -8,7 +8,7 @@
   <img src="https://img.shields.io/badge/Platform-Android-green.svg" alt="Platform" />
   <img src="https://img.shields.io/badge/Language-Kotlin-purple.svg" alt="Language" />
   <img src="https://img.shields.io/badge/UI-Jetpack%20Compose-blue.svg" alt="Compose" />
-  <img src="https://img.shields.io/badge/Version-v2.8.7-orange.svg" alt="Version" />
+  <img src="https://img.shields.io/badge/Version-v2.9.0-orange.svg" alt="Version" />
 </p>
 
 ---
@@ -38,7 +38,12 @@
 - **滴/嗒即时录入**：专为局内门锁电码设计，短音（•）与长音（-）轻按录入。
 - **自动数字解码**：每输入 5 音自动解算对应 1 位阿拉伯数字，支持一键复制 4 位密码。
 
-### 6. 每日密码与热门配装
+### 6. 实时战术资讯与官方公告
+- **动态资讯流**：无缝同步官方与鼠鼠工具（shushu.fan）最新更新公告、干员调整与赛季爆料。
+- **图文详情排版**：自适应官方高清战术长图海报与富文本排版，支持手势平滑缩放。
+- **往期公告回溯**：支持全部资讯流列表展开、分页加载与往期内容查看。
+
+### 7. 每日密码与热门配装
 - **每日密码**：零号大坝、长弓溪谷、巴克什、航天基地、潮汐监狱、AZ3 密码大号直观展示。
 - **热门枪械配装**：主流改枪方案与改枪码一键复制。
 - **武器属性对比**：主流突击步枪与冲锋枪射速、伤害、射程与操控横向对比。

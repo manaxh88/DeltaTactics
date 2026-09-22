@@ -40,8 +40,13 @@ import com.delta.tactics.presentation.navigation.rememberGlassBackdrop
 import com.delta.tactics.presentation.navigation.glassSource
 import com.delta.tactics.presentation.profile.ProfileScreen
 import com.delta.tactics.presentation.cipher.DecryptCenterScreen
+import com.delta.tactics.domain.model.TacticalNewsItem
+import com.delta.tactics.presentation.news.TacticalNewsViewModel
+import com.delta.tactics.presentation.news.TacticalNewsDetailBottomSheet
+import com.delta.tactics.presentation.news.TacticalNewsListBottomSheet
 import com.delta.tactics.core.ui.theme.*
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
@@ -142,7 +147,7 @@ fun HomeDashboardScreen(
     // 冷启动 2.5 秒后在后台低优先级静默检查新版本
     LaunchedEffect(Unit) {
         delay(2500)
-        val result = appUpdateRepository.checkUpdate(currentVersionCode = 19)
+        val result = appUpdateRepository.checkUpdate(currentVersionCode = 20)
         if (result.isSuccess) {
             val info = result.getOrNull()
             if (info != null && info.hasUpdate) {
@@ -165,6 +170,20 @@ fun HomeDashboardScreen(
     val weaponSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val keyRoomsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val hotGunsmithSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    val newsViewModel: TacticalNewsViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val newsList by newsViewModel.newsList.collectAsState()
+    val isNewsLoading by newsViewModel.isLoading.collectAsState()
+    val hasMoreNews by newsViewModel.hasMore.collectAsState()
+    val selectedNewsDetail by newsViewModel.selectedDetail.collectAsState()
+    val isNewsDetailLoading by newsViewModel.isLoadingDetail.collectAsState()
+    val newsDetailError by newsViewModel.detailError.collectAsState()
+
+    var showNewsListSheet by remember { mutableStateOf(false) }
+    var showNewsDetailSheet by remember { mutableStateOf(false) }
+    var activeBriefItem by remember { mutableStateOf<TacticalNewsItem?>(null) }
+    val newsListSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val newsDetailSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val navItems = remember {
         listOf(
@@ -262,20 +281,24 @@ fun HomeDashboardScreen(
                     title = "战术资讯",
                     actionText = "全部",
                     onMoreClick = {
-                        coroutineScope.launch { snackbarHostState.showSnackbar("查看全部战术资讯与最新改动") }
+                        showNewsListSheet = true
                     }
                 )
             }
             item {
                 TacticalNewsContainer {
-                    TacticalNewsRow(
-                        title = "零号大坝 • 撤离点架枪点位图解",
-                        showDivider = true
-                    )
-                    TacticalNewsRow(
-                        title = "新干员「蜂医」技能解析与配装思路",
-                        showDivider = false
-                    )
+                    val displayItems = newsList.take(3)
+                    displayItems.forEachIndexed { index, item ->
+                        TacticalNewsRow(
+                            item = item,
+                            showDivider = index < displayItems.size - 1,
+                            onClick = {
+                                activeBriefItem = item
+                                newsViewModel.selectArticle(item.threadId)
+                                showNewsDetailSheet = true
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -305,7 +328,7 @@ fun HomeDashboardScreen(
                         if (isCheckingUpdate) return@ProfileScreen
                         isCheckingUpdate = true
                         coroutineScope.launch {
-                            val res = appUpdateRepository.checkUpdate(currentVersionCode = 19)
+                            val res = appUpdateRepository.checkUpdate(currentVersionCode = 20)
                             isCheckingUpdate = false
                             if (res.isSuccess) {
                                 val info = res.getOrNull()
@@ -313,7 +336,7 @@ fun HomeDashboardScreen(
                                     updateInfo = info
                                     showUpdateDialog = true
                                 } else {
-                                    android.widget.Toast.makeText(context, "当前已是最新版本 (v2.8.9)", android.widget.Toast.LENGTH_SHORT).show()
+                                    android.widget.Toast.makeText(context, "当前已是最新版本 (v2.9.0)", android.widget.Toast.LENGTH_SHORT).show()
                                 }
                             } else {
                                 android.widget.Toast.makeText(context, "检查更新失败，请检查网络连接", android.widget.Toast.LENGTH_SHORT).show()
@@ -405,6 +428,41 @@ fun HomeDashboardScreen(
             KeyRoomsBottomSheet(
                 sheetState = keyRoomsSheetState,
                 onDismissRequest = { showKeyRoomsSheet = false }
+            )
+        }
+
+        // 战术资讯完整列表抽屉
+        if (showNewsListSheet) {
+            TacticalNewsListBottomSheet(
+                sheetState = newsListSheetState,
+                newsList = newsList,
+                isLoading = isNewsLoading,
+                hasMore = hasMoreNews,
+                onDismissRequest = { showNewsListSheet = false },
+                onSelectArticle = { threadId ->
+                    activeBriefItem = newsList.find { it.threadId == threadId }
+                    newsViewModel.selectArticle(threadId)
+                    showNewsDetailSheet = true
+                },
+                onLoadMore = { newsViewModel.loadMore() }
+            )
+        }
+
+        // 战术资讯详情抽屉
+        if (showNewsDetailSheet) {
+            TacticalNewsDetailBottomSheet(
+                sheetState = newsDetailSheetState,
+                detail = selectedNewsDetail,
+                briefItem = activeBriefItem,
+                isLoading = isNewsDetailLoading,
+                errorMessage = newsDetailError,
+                onDismissRequest = {
+                    showNewsDetailSheet = false
+                    newsViewModel.clearSelectedArticle()
+                },
+                onRetry = {
+                    activeBriefItem?.let { newsViewModel.selectArticle(it.threadId) }
+                }
             )
         }
 
@@ -891,44 +949,79 @@ private fun TacticalNewsContainer(
 
 @Composable
 private fun TacticalNewsRow(
-    title: String,
-    showDivider: Boolean
+    item: TacticalNewsItem,
+    showDivider: Boolean,
+    onClick: () -> Unit
 ) {
     Column {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { }
+                .clickable(onClick = onClick)
                 .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 参考图左侧圆角缩略图
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFFE5E7EB)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Map,
-                    contentDescription = null,
-                    tint = Color(0xFF9CA3AF),
-                    modifier = Modifier.size(20.dp)
+            // 左侧缩略图
+            if (item.coverUrl.isNotBlank()) {
+                AsyncItemImage(
+                    url = item.coverUrl,
+                    contentDescription = item.title,
+                    modifier = Modifier
+                        .size(width = 54.dp, height = 38.dp)
+                        .clip(RoundedCornerShape(10.dp)),
+                    contentScale = ContentScale.Crop
                 )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(width = 54.dp, height = 38.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xFFE5E7EB)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Newspaper,
+                        contentDescription = null,
+                        tint = Color(0xFF9CA3AF),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            Text(
-                text = title,
-                fontSize = 14.sp,
-                color = TextPrimaryDark,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = item.title,
+                    fontSize = 14.sp,
+                    color = TextPrimaryDark,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (item.createdAt.isNotBlank()) {
+                        Text(
+                            text = TacticalNewsViewModel.formatDate(item.createdAt),
+                            fontSize = 11.sp,
+                            color = TextSecondaryGray
+                        )
+                    }
+                    Text(
+                        text = "${TacticalNewsViewModel.formatCount(item.viewCount)} 浏览",
+                        fontSize = 11.sp,
+                        color = TextSecondaryGray
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(6.dp))
 
             Icon(
                 imageVector = Icons.Default.ChevronRight,

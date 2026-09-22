@@ -159,7 +159,7 @@ fun ProfileScreen(
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "当前版本: v2.8.9 (Build 19)",
+                            text = "当前版本: v2.9.0 (Build 20)",
                             fontSize = 12.sp,
                             color = TextSecondaryGray
                         )
@@ -219,7 +219,7 @@ fun ProfileScreen(
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = "三角洲战术助手 v2.8.9 (改枪配装抄作业版)",
+                            text = "三角洲战术助手 v2.9.0 (实时战术资讯与官方公告版)",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimaryDark
@@ -227,7 +227,7 @@ fun ProfileScreen(
                     }
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "• 热门配装全面升级官方高清透底武器渲染图，告别灰底文字方块\n• 枪械卡片新增改枪码胶囊条与一键复制按钮，主流方案即拷即用\n• 新增「热门改枪配装·战术抄作业」独立抽屉，多流派分类与配件明细\n• 鼠鼠卡战备配件清单全面上线官方装备/配件图与品质框\n• 卡战备方案新增「复制方案」功能，一键导出完整装配清单\n• 战术武器对比面板同步升级枪械高清图示",
+                        text = "• 全面接入三角洲行动官方与鼠鼠工具 (shushu.fan) 实时战术资讯流\n• 首页战术资讯板块升级为官方动态海报与阅读/点赞实时数据\n• 新增「战术资讯详情」弹窗，自适应高清长图海报与富文本排版\n• 点击全部支持展开完整往期资讯列表，支持分页与往期公告回溯\n• 双重离线秒开保障，无网与弱网环境平滑展示官方种子数据",
                         fontSize = 12.sp,
                         color = TextSecondaryGray,
                         lineHeight = 20.sp
