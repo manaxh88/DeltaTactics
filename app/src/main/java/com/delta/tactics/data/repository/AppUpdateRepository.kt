@@ -125,7 +125,7 @@ class AppUpdateRepository(private val context: Context) {
             val json = JSONObject(body)
 
             val targetCode = json.optInt("versionCode", currentVersionCode)
-            val versionName = json.optString("versionName", "2.8.5")
+            val versionName = json.optString("versionName", "2.8.6")
             val title = json.optString("title", "三角洲助手 版本更新")
             val changelog = json.optString("changelog", "暂无更新说明")
             val apkUrl = json.optString("apkUrl", "")

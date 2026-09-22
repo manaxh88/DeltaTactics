@@ -11,7 +11,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,33 +25,33 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.abs
 
 /**
- * 导航项数据模型 (严格遵循开源 liquid-glass-bottom-nav 规范)
+ * 导航项数据模型
  */
 data class LiquidNavItem(
     val title: String,
@@ -69,16 +72,16 @@ data class LiquidNavItem(
 typealias NavItem = LiquidNavItem
 
 /**
- * 直接按照开源项目 liquid-glass-bottom-nav 实现的液态玻璃底栏
+ * 纯正苹果风格液态玻璃常驻底栏 (Apple iOS 18 / VisionOS Liquid Glass Dock)
  *
- * 开源核心特性实现：
- * 1. 硬件加速垂直渐变透明层 (Zero-blur, 60fps 满帧性能)
- * 2. 顶部 1px 镜面反射反光条 (Specular Highlight Line)
- * 3. 50dp 径向发光圆形光晕 (Radial Glow Circle) 位于选中图标下方
- * 4. 56dp 流体胶囊随选中 Tab 平滑位移动画 (Spring-physics indicator)
- * 5. 图标状态切换：未选中为 Outlined 轮廓，选中弹性放大并切换为 Filled 实体
- * 6. 悬浮拟态阴影 (Floating Appearance with 16dp Elevation)
- * 7. SpaceEvenly 严密对称排版
+ * 核心苹果拟态特性：
+ * 1. 悬浮胶囊底座 (Floating Capsule Dock)：高度 64dp，圆角 32dp 全胶囊药丸造型，悬浮于手势条之上。
+ * 2. 苹果超透乳白水晶玻璃质感 (Ultra-Thin Translucent Glass)：多阶高透白纯净渐变，通透光泽，不脏不灰。
+ * 3. 顶部 1px 极细镜面反射光弧 (Specular Highlight Line)：微曲镜面反光，真实模拟环境光投射。
+ * 4. 苹果液态药丸滑块 (Apple Liquid Pill Indicator)：58dp 宽、48dp 高的柔润药丸滑块，自带微凸阴影与表面张力光泽。
+ * 5. 液体张力弹性拉伸物理动效 (Fluid Surface Tension Physics)：Tab 切换时，滑块沿水平轴轻微拉伸 (scaleX=1.06)，落位时有机回弹 (Spring 0.76)。
+ * 6. 严密 100% 数学绝对对称：各 Tab 基于父容器 1/N 均匀等分，滑块精准居中锚定，零偏移零误差。
+ * 7. 图标与文字并存 (Apple SF Style Typography)：高对比度深石墨黑选中态 + 苹果次级灰未选中态。
  */
 @Composable
 fun LiquidGlassBottomBar(
@@ -88,181 +91,255 @@ fun LiquidGlassBottomBar(
     modifier: Modifier = Modifier,
     backgroundColor: Color = Color.White,
     selectedColor: Color = Color(0xFF0F172A),
-    unselectedColor: Color = Color(0xFF64748B),
-    activeColor: Color = Color(0xFF0F172A),
-    borderColor: Color = Color(0xFFCBD5E1),
-    barHeight: Dp = 68.dp,
-    cornerRadius: Dp = 32.dp,
-    showBorder: Boolean = true
+    unselectedColor: Color = Color(0xFF8E8E93),
+    barHeight: Dp = 64.dp,
+    cornerRadius: Dp = 32.dp
 ) {
-    val activeIndex = selectedTab
+    val density = LocalDensity.current
+    val itemCount = items.size.coerceAtLeast(1)
 
-    val itemPositions = remember { mutableStateMapOf<Int, Float>() }
-    val itemWidths = remember { mutableStateMapOf<Int, Float>() }
+    // 记录内部容器宽度，用于精准计算数学绝对对称坐标
+    var containerWidthPx by remember { mutableFloatStateOf(0f) }
 
-    // 实时监听 itemPositions，直接根据选中的 activeIndex 计算水滴目标 X 轴像素位置
-    val targetPosition = itemPositions[activeIndex] ?: 0f
+    // 滑块宽度与高度规格
+    val pillWidthDp = 58.dp
+    val pillHeightDp = 48.dp
+    val pillWidthPx = with(density) { pillWidthDp.toPx() }
 
-    val animatedOffset by animateFloatAsState(
-        targetValue = targetPosition,
+    // 当前选中项中心 X 像素坐标：(selectedTab + 0.5) * (containerWidth / itemCount)
+    val itemWidthPx = if (containerWidthPx > 0f) containerWidthPx / itemCount else 0f
+    val targetCenterX = if (itemWidthPx > 0f) {
+        (selectedTab + 0.5f) * itemWidthPx
+    } else {
+        0f
+    }
+
+    // 苹果标志性阻尼弹性滑移动画 (Spring Physics)
+    val animatedCenterX by animateFloatAsState(
+        targetValue = targetCenterX,
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
+            dampingRatio = 0.78f,
             stiffness = Spring.StiffnessMediumLow
         ),
-        label = "indicator_offset"
+        label = "apple_liquid_pill_x"
     )
 
-    val blobScale by animateFloatAsState(
-        targetValue = 1f,
+    // 移动过程中的液体表面张力拉伸动效 (Jelly Stretch)
+    val isMoving = containerWidthPx > 0f && abs(animatedCenterX - targetCenterX) > with(density) { 3.dp.toPx() }
+    val stretchScaleX by animateFloatAsState(
+        targetValue = if (isMoving) 1.08f else 1.0f,
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMediumLow
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
         ),
-        label = "blob_scale"
+        label = "liquid_stretch_x"
+    )
+    val stretchScaleY by animateFloatAsState(
+        targetValue = if (isMoving) 0.94f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "liquid_stretch_y"
     )
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .height(barHeight + 20.dp)
-            .padding(horizontal = 20.dp, vertical = 10.dp)
+            .padding(horizontal = 22.dp, vertical = 8.dp)
+            .height(barHeight)
     ) {
-        val density = LocalDensity.current
-
-        // 浮动拟态毛玻璃容器 (带柔和弥散悬浮阴影)
+        // 1. 苹果悬浮胶囊底座容器 (Floating Dock Capsule)
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .shadow(
-                    elevation = 16.dp,
+                    elevation = 22.dp,
                     shape = RoundedCornerShape(cornerRadius),
-                    spotColor = Color(0x300F172A),
-                    ambientColor = Color(0x120F172A)
+                    spotColor = Color(0x350F172A),
+                    ambientColor = Color(0x180F172A)
                 )
                 .clip(RoundedCornerShape(cornerRadius))
                 .background(
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            backgroundColor.copy(alpha = 0.90f),
-                            backgroundColor.copy(alpha = 0.78f),
-                            backgroundColor.copy(alpha = 0.65f)
+                            backgroundColor.copy(alpha = 0.56f),
+                            Color(0xFFEAF3FF).copy(alpha = 0.34f),
+                            Color(0xFFDDEBFA).copy(alpha = 0.42f)
                         )
                     )
                 )
+                .border(
+                    width = 0.8.dp,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.92f),
+                            Color(0xFFB9D9F5).copy(alpha = 0.54f),
+                            Color.White.copy(alpha = 0.72f)
+                        )
+                    ),
+                    shape = RoundedCornerShape(cornerRadius)
+                )
         ) {
-            // 开源标准微折射边缘描边
-            if (showBorder) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(cornerRadius))
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    borderColor.copy(alpha = 0.50f),
-                                    Color.Transparent,
-                                    borderColor.copy(alpha = 0.40f)
-                                )
+            // Translucent material tint and a soft internal light bloom.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.White.copy(alpha = 0.18f),
+                                Color.Transparent,
+                                Color(0xFF8CC8F5).copy(alpha = 0.10f)
                             )
                         )
-                )
-            }
+                    )
+            )
 
-            // 开源标准顶部 1px 倒角镜面反光线
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .offset(x = 8.dp, y = (-4).dp)
+                    .size(116.dp, 64.dp)
+                    .blur(24.dp)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(
+                                Color.White.copy(alpha = 0.72f),
+                                Color(0xFFB8E3FF).copy(alpha = 0.26f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
+
+            // Thin specular highlight and a faint lower refraction rim.
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(1.dp)
-                    .background(Color.White.copy(alpha = 0.75f))
+                    .align(Alignment.TopCenter)
+                    .padding(horizontal = 16.dp)
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.White.copy(alpha = 0.95f),
+                                Color.Transparent
+                            )
+                        )
+                    )
             )
 
-            // 开源标准随 Tab 弹性滑移的半透明晶莹液态水滴指示器 (56dp 圆形水滴凸透镜)
-            if (itemPositions.containsKey(activeIndex)) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .offset(x = with(density) { animatedOffset.toDp() })
-                        .size(56.dp * blobScale)
-                        .shadow(
-                            elevation = 4.dp,
-                            shape = CircleShape,
-                            spotColor = Color(0x350F172A),
-                            ambientColor = Color(0x150F172A)
-                        )
-                        .clip(CircleShape)
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = 0.98f),
-                                    Color(0xFFF1F5F9).copy(alpha = 0.85f),
-                                    Color(0xFFE2E8F0).copy(alpha = 0.65f)
-                                )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .drawWithCache {
+                        val rim = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.22f),
+                                Color.Transparent,
+                                Color(0xFF84BCE8).copy(alpha = 0.20f)
                             )
                         )
-                        .background(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    activeColor.copy(alpha = 0.08f),
-                                    Color.Transparent
-                                ),
-                                radius = with(density) { 28.dp.toPx() }
+                        onDrawWithContent {
+                            drawContent()
+                            drawRoundRect(
+                                brush = rim,
+                                style = Stroke(width = 1.2.dp.toPx()),
+                                cornerRadius = androidx.compose.ui.geometry.CornerRadius(cornerRadius.toPx())
                             )
-                        )
-                        .border(
-                            width = 1.dp,
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.White,
-                                    Color(0xFFCBD5E1).copy(alpha = 0.70f)
-                                )
-                            ),
-                            shape = CircleShape
-                        )
-                ) {
-                    // 水滴顶部 1px 镜面微弧高光
+                        }
+                    }
+            )
+
+            // 内部工作区域 (滑块与 Tab 共享此绝对空间)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 6.dp)
+                    .onGloballyPositioned { coordinates ->
+                        containerWidthPx = coordinates.size.width.toFloat()
+                    }
+            ) {
+                // 3. 苹果液态药丸滑块 (Apple Liquid Pill Indicator)
+                if (containerWidthPx > 0f && animatedCenterX > 0f) {
+                    val pillLeftPx = animatedCenterX - (pillWidthPx / 2f)
+                    val pillLeftDp = with(density) { pillLeftPx.toDp() }
+
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .align(Alignment.TopCenter)
-                            .padding(horizontal = 10.dp)
+                            .align(Alignment.CenterStart)
+                            .offset(x = pillLeftDp)
+                            .size(width = pillWidthDp, height = pillHeightDp)
+                            .scale(scaleX = stretchScaleX, scaleY = stretchScaleY)
+                            .shadow(
+                                elevation = 7.dp,
+                                shape = RoundedCornerShape(24.dp),
+                                spotColor = Color(0x3A1D4770),
+                                ambientColor = Color(0x1A1D4770)
+                            )
+                            .clip(RoundedCornerShape(24.dp))
                             .background(
-                                brush = Brush.horizontalGradient(
+                                brush = Brush.verticalGradient(
                                     colors = listOf(
-                                        Color.Transparent,
-                                        Color.White,
-                                        Color.Transparent
+                                        Color.White.copy(alpha = 0.78f),
+                                        Color(0xFFD9EEFF).copy(alpha = 0.46f),
+                                        Color(0xFFB7DBF5).copy(alpha = 0.40f)
                                     )
                                 )
                             )
-                    )
+                            .border(
+                                width = 0.8.dp,
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.White.copy(alpha = 0.95f),
+                                        Color(0xFF8FC7F2).copy(alpha = 0.60f)
+                                    )
+                                ),
+                                shape = RoundedCornerShape(24.dp)
+                            )
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(18.dp)
+                                .align(Alignment.TopCenter)
+                                .clip(RoundedCornerShape(24.dp))
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(
+                                            Color.White.copy(alpha = 0.42f),
+                                            Color.Transparent
+                                        )
+                                    )
+                                )
+                        )
+                    }
                 }
-            }
 
-            // 开源标准 SpaceEvenly 均匀排版
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                items.forEachIndexed { index, item ->
-                    key(index) {
-                        NavBarItem(
+                // 4. Tab 按钮行 (1/N 严格数学等分，完美对齐滑块)
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    items.forEachIndexed { index, item ->
+                        val isSelected = index == selectedTab
+
+                        AppleTabItem(
                             item = item,
-                            isSelected = index == activeIndex,
+                            isSelected = isSelected,
+                            selectedColor = selectedColor,
+                            unselectedColor = unselectedColor,
                             onClick = {
-                                if (activeIndex != index) {
+                                if (selectedTab != index) {
                                     onTabSelected(index)
                                 }
                             },
-                            selectedColor = selectedColor,
-                            unselectedColor = unselectedColor,
-                            activeColor = activeColor,
-                            onPositioned = { x, width ->
-                                itemPositions[index] = x + (width / 2) - with(density) { 28.dp.toPx() }
-                                itemWidths[index] = width
-                            }
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
                         )
                     }
                 }
@@ -271,48 +348,33 @@ fun LiquidGlassBottomBar(
     }
 }
 
+/**
+ * 苹果风格导航项组件 (图标 + 精致标签，严密居中排布)
+ */
 @Composable
-private fun NavBarItem(
+private fun AppleTabItem(
     item: LiquidNavItem,
     isSelected: Boolean,
-    onClick: () -> Unit,
     selectedColor: Color,
     unselectedColor: Color,
-    activeColor: Color,
-    onPositioned: (x: Float, width: Float) -> Unit = { _, _ -> }
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    // 开源标准图标弹性缩放微动效 (1.25x 放大)
-    val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.25f else 1f,
+    // 弹性缩放动效
+    val iconScale by animateFloatAsState(
+        targetValue = if (isSelected) 1.08f else 1.0f,
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessLow
+            dampingRatio = 0.70f,
+            stiffness = Spring.StiffnessMediumLow
         ),
-        label = "scale"
+        label = "apple_icon_scale"
     )
 
-    // 开源标准垂直回弹微动效
-    val offsetY by animateFloatAsState(
-        targetValue = 0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "offset_y"
-    )
-
-    // 图标颜色平滑渐变
-    val iconColor by animateColorAsState(
+    // 图标与文字颜色平滑过渡
+    val activeColorAnimated by animateColorAsState(
         targetValue = if (isSelected) selectedColor else unselectedColor,
-        animationSpec = tween(250),
-        label = "color"
-    )
-
-    // 透明度平滑渐变
-    val alpha by animateFloatAsState(
-        targetValue = if (isSelected) 1f else 0.65f,
-        animationSpec = tween(250),
-        label = "alpha"
+        animationSpec = tween(220),
+        label = "apple_item_color"
     )
 
     val badgeText = remember(item.badge) {
@@ -322,78 +384,67 @@ private fun NavBarItem(
     }
 
     Box(
-        modifier = Modifier
-            .size(60.dp)
+        modifier = modifier
             .clickable(
                 onClick = onClick,
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() }
-            )
-            .onGloballyPositioned { coordinates ->
-                onPositioned(
-                    coordinates.positionInParent().x,
-                    coordinates.size.width.toFloat()
-                )
-            },
+            ),
         contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = Modifier
-                .size(60.dp)
-                .offset(y = offsetY.dp)
-                .scale(scale),
-            contentAlignment = Alignment.Center
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            // 开源标准：选中时图标正后方的 50dp 径向发光光晕
-            if (isSelected) {
-                Box(
-                    modifier = Modifier
-                        .size(50.dp)
-                        .clip(CircleShape)
-                        .background(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    activeColor.copy(alpha = 0.22f),
-                                    activeColor.copy(alpha = 0.08f),
-                                    Color.Transparent
-                                )
-                            )
-                        )
-                )
-            }
-
-            Icon(
-                imageVector = if (isSelected && item.activeIcon != null) item.activeIcon else item.icon,
-                contentDescription = item.title,
-                tint = iconColor.copy(alpha = alpha),
-                modifier = Modifier.size(if (isSelected) 30.dp else 26.dp)
-            )
-        }
-
-        // 开源标准：徽章通知
-        badgeText?.let { text ->
+            // 图标层 (带弹性缩放与徽标支持)
             Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .offset(x = 4.dp, y = (-4).dp)
-                    .size(20.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFFFF3B30)),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.scale(iconScale)
             ) {
-                Text(
-                    text = text,
-                    color = Color.White,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontSize = 10.sp
+                Icon(
+                    imageVector = if (isSelected && item.activeIcon != null) item.activeIcon else item.icon,
+                    contentDescription = item.title,
+                    tint = activeColorAnimated,
+                    modifier = Modifier.size(22.dp)
                 )
+
+                // 苹果鲜红通知小红点 / 数字徽标
+                badgeText?.let { text ->
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = 6.dp, y = (-4).dp)
+                            .size(16.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFFF3B30)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = text,
+                            color = Color.White,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
+
+            Spacer(modifier = Modifier.height(2.5.dp))
+
+            // 标题文本 (苹果 SF Pro 字体排版风格)
+            Text(
+                text = item.title,
+                fontSize = 10.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                color = activeColorAnimated,
+                letterSpacing = (-0.1).sp
+            )
         }
     }
 }
 
 /**
- * 兼容别名 (与开源 LiquidGlassBottomNavBar 命名一致)
+ * 兼容别名
  */
 @Composable
 fun LiquidGlassBottomNavBar(
@@ -403,12 +454,9 @@ fun LiquidGlassBottomNavBar(
     modifier: Modifier = Modifier,
     backgroundColor: Color = Color.White,
     selectedColor: Color = Color(0xFF0F172A),
-    unselectedColor: Color = Color(0xFF64748B),
-    activeColor: Color = Color(0xFF0F172A),
-    borderColor: Color = Color(0xFFCBD5E1),
-    barHeight: Dp = 68.dp,
-    cornerRadius: Dp = 32.dp,
-    showBorder: Boolean = true
+    unselectedColor: Color = Color(0xFF8E8E93),
+    barHeight: Dp = 64.dp,
+    cornerRadius: Dp = 32.dp
 ) = LiquidGlassBottomBar(
     items = items,
     selectedTab = selectedIndex,
@@ -417,9 +465,6 @@ fun LiquidGlassBottomNavBar(
     backgroundColor = backgroundColor,
     selectedColor = selectedColor,
     unselectedColor = unselectedColor,
-    activeColor = activeColor,
-    borderColor = borderColor,
     barHeight = barHeight,
-    cornerRadius = cornerRadius,
-    showBorder = showBorder
+    cornerRadius = cornerRadius
 )

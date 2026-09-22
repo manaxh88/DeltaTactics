@@ -159,7 +159,7 @@ fun ProfileScreen(
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "当前版本: v2.8.5 (Build 15)",
+                            text = "当前版本: v2.8.6 (Build 16)",
                             fontSize = 12.sp,
                             color = TextSecondaryGray
                         )
@@ -219,7 +219,7 @@ fun ProfileScreen(
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = "三角洲助手 v2.8.5 (避难所套利版)",
+                            text = "三角洲助手 v2.8.6 (液态玻璃导航版)",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimaryDark
@@ -227,7 +227,7 @@ fun ProfileScreen(
                     }
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "• 常驻液态玻璃底栏：多层玻璃拟态视觉、流体水滴弹性滑移动效，全页面无缝穿透常驻\n• 特勤处工作台制造利润榜：防具/弹药/医疗/枪械 4 大工作台利润与时薪实时测算\n• 高级子弹自选包套利：3~5 级子弹自选包价值排行榜与首选推荐\n• 精简极速架构：彻底移除冗余战绩，全界面 60/120 FPS 满帧极速丝滑",
+                        text = "• 液态玻璃导航栏：半透明材质、柔光模糊、折射边缘与弹性选中胶囊\n• 特勤处工作台制造利润榜：防具/弹药/医疗/枪械 4 大工作台利润与时薪实时测算\n• 高级子弹自选包套利：3~5 级子弹自选包价值排行榜与首选推荐\n• 精简极速架构：彻底移除冗余战绩，全界面 60/120 FPS 满帧极速丝滑",
                         fontSize = 12.sp,
                         color = TextSecondaryGray,
                         lineHeight = 20.sp
