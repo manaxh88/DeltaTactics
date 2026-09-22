@@ -1,0 +1,253 @@
+{
+  "updateTime": "2026-09-22 09:00:00",
+  "packs": [
+    {
+      "id": "pack_tier3",
+      "packName": "3级子弹自选包",
+      "recommendedBullet": ".300 BLK",
+      "recommendedValue": 123400,
+      "bullets": [
+        {
+          "rank": 1,
+          "name": ".300 BLK",
+          "caliber": ".300 BLK",
+          "count": 200,
+          "unitPrice": 617,
+          "totalValue": 123400,
+          "isBest": true
+        },
+        {
+          "rank": 2,
+          "name": "5.45×39mm PS",
+          "caliber": "5.45×39mm",
+          "count": 200,
+          "unitPrice": 549,
+          "totalValue": 109800,
+          "isBest": false
+        },
+        {
+          "rank": 3,
+          "name": "5.7×28mm L191",
+          "caliber": "5.7×28mm",
+          "count": 200,
+          "unitPrice": 540,
+          "totalValue": 108000,
+          "isBest": false
+        },
+        {
+          "rank": 4,
+          "name": ".45 ACP FMJ",
+          "caliber": ".45 ACP",
+          "count": 180,
+          "unitPrice": 551,
+          "totalValue": 99180,
+          "isBest": false
+        },
+        {
+          "rank": 5,
+          "name": ".357 Magnum JHP",
+          "caliber": ".357",
+          "count": 150,
+          "unitPrice": 659,
+          "totalValue": 98850,
+          "isBest": false
+        },
+        {
+          "rank": 6,
+          "name": "4.6×30mm Subsonic SX",
+          "caliber": "4.6×30mm",
+          "count": 200,
+          "unitPrice": 477,
+          "totalValue": 95400,
+          "isBest": false
+        },
+        {
+          "rank": 7,
+          "name": "5.8×42mm DVP88",
+          "caliber": "5.8×42mm",
+          "count": 180,
+          "unitPrice": 523,
+          "totalValue": 94140,
+          "isBest": false
+        },
+        {
+          "rank": 8,
+          "name": "7.62×39mm PS",
+          "caliber": "7.62×39mm",
+          "count": 150,
+          "unitPrice": 551,
+          "totalValue": 82650,
+          "isBest": false
+        },
+        {
+          "rank": 9,
+          "name": "7.62×54R T46M",
+          "caliber": "7.62×54R",
+          "count": 150,
+          "unitPrice": 542,
+          "totalValue": 81300,
+          "isBest": false
+        }
+      ]
+    },
+    {
+      "id": "pack_tier4",
+      "packName": "4级子弹自选包",
+      "recommendedBullet": "7.62×51mm M80",
+      "recommendedValue": 248600,
+      "bullets": [
+        {
+          "rank": 1,
+          "name": "7.62×51mm M80",
+          "caliber": "7.62×51mm",
+          "count": 180,
+          "unitPrice": 1381,
+          "totalValue": 248600,
+          "isBest": true
+        },
+        {
+          "rank": 2,
+          "name": ".300 BLK AP",
+          "caliber": ".300 BLK",
+          "count": 180,
+          "unitPrice": 1290,
+          "totalValue": 232200,
+          "isBest": false
+        },
+        {
+          "rank": 3,
+          "name": "5.56×45mm A1",
+          "caliber": "5.56×45mm",
+          "count": 200,
+          "unitPrice": 1085,
+          "totalValue": 217000,
+          "isBest": false
+        },
+        {
+          "rank": 4,
+          "name": "9×19mm 7N31",
+          "caliber": "9×19mm",
+          "count": 200,
+          "unitPrice": 1042,
+          "totalValue": 208400,
+          "isBest": false
+        },
+        {
+          "rank": 5,
+          "name": "5.8×42mm DVP03",
+          "caliber": "5.8×42mm",
+          "count": 180,
+          "unitPrice": 1098,
+          "totalValue": 197640,
+          "isBest": false
+        },
+        {
+          "rank": 6,
+          "name": "7.62×39mm BP",
+          "caliber": "7.62×39mm",
+          "count": 150,
+          "unitPrice": 1210,
+          "totalValue": 181500,
+          "isBest": false
+        },
+        {
+          "rank": 7,
+          "name": "7.62×54R LPS",
+          "caliber": "7.62×54R",
+          "count": 120,
+          "unitPrice": 1420,
+          "totalValue": 170400,
+          "isBest": false
+        }
+      ]
+    },
+    {
+      "id": "pack_tier5",
+      "packName": "5级子弹自选包",
+      "recommendedBullet": "7.62×51mm M61",
+      "recommendedValue": 453600,
+      "bullets": [
+        {
+          "rank": 1,
+          "name": "7.62×51mm M61",
+          "caliber": "7.62×51mm",
+          "count": 120,
+          "unitPrice": 3780,
+          "totalValue": 453600,
+          "isBest": true
+        },
+        {
+          "rank": 2,
+          "name": "5.56×45mm M995",
+          "caliber": "5.56×45mm",
+          "count": 150,
+          "unitPrice": 2840,
+          "totalValue": 426000,
+          "isBest": false
+        },
+        {
+          "rank": 3,
+          "name": ".300 BLK V-Max 穿甲",
+          "caliber": ".300 BLK",
+          "count": 150,
+          "unitPrice": 2720,
+          "totalValue": 408000,
+          "isBest": false
+        },
+        {
+          "rank": 4,
+          "name": "7.62×54R BT",
+          "caliber": "7.62×54R",
+          "count": 100,
+          "unitPrice": 3650,
+          "totalValue": 365000,
+          "isBest": false
+        },
+        {
+          "rank": 5,
+          "name": "9×19mm RIP+穿甲",
+          "caliber": "9×19mm",
+          "count": 150,
+          "unitPrice": 2180,
+          "totalValue": 327000,
+          "isBest": false
+        }
+      ]
+    },
+    {
+      "id": "pack_battlepass",
+      "packName": "通行证高级自选包",
+      "recommendedBullet": "7.62×51mm M80 特装",
+      "recommendedValue": 312000,
+      "bullets": [
+        {
+          "rank": 1,
+          "name": "7.62×51mm M80 特装",
+          "caliber": "7.62×51mm",
+          "count": 220,
+          "unitPrice": 1418,
+          "totalValue": 312000,
+          "isBest": true
+        },
+        {
+          "rank": 2,
+          "name": "5.56×45mm A1 加量装",
+          "caliber": "5.56×45mm",
+          "count": 250,
+          "unitPrice": 1120,
+          "totalValue": 280000,
+          "isBest": false
+        },
+        {
+          "rank": 3,
+          "name": ".300 BLK AP 战术装",
+          "caliber": ".300 BLK",
+          "count": 200,
+          "unitPrice": 1310,
+          "totalValue": 262000,
+          "isBest": false
+        }
+      ]
+    }
+  ]
+}
