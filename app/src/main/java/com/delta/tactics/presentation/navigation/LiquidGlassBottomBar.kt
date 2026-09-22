@@ -78,7 +78,7 @@ fun LiquidGlassBottomBar(
     selectedTab: Int,
     onTabSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
-    barHeight: Dp = 64.dp,
+    barHeight: Dp = 66.dp,
     activeColor: Color = Color(0xFF0F172A),
     inactiveColor: Color = Color(0xFF64748B)
 ) {
@@ -111,68 +111,59 @@ fun LiquidGlassBottomBar(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 10.dp),
+            .padding(horizontal = 18.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {
-        // 外层柔和弥散阴影
+        // 外层柔和弥散阴影与高透白玉质感容器
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(barHeight)
                 .shadow(
-                    elevation = 20.dp,
-                    shape = RoundedCornerShape(32.dp),
-                    spotColor = Color(0x380F172A),
-                    ambientColor = Color(0x140F172A)
+                    elevation = 16.dp,
+                    shape = RoundedCornerShape(33.dp),
+                    spotColor = Color(0x2B0F172A),
+                    ambientColor = Color(0x0F0F172A)
                 )
-                .clip(RoundedCornerShape(32.dp))
-                // 白色半透明液态玻璃多层渐变
+                .clip(RoundedCornerShape(33.dp))
+                // 纯正高雅的白色质感底色 (遮蔽底层文字重叠，告别杂乱)
                 .background(
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            Color(0xFAFFFFFF), // 顶部高透纯白
-                            Color(0xF2FFFFFF), // 中段通透乳白
-                            Color(0xF7F8FAFC)  // 底部厚实质感白
+                            Color(0xFFFFFFFF),
+                            Color(0xFFF9FAFB)
                         )
                     )
                 )
-                // 玻璃边缘折射描边 (顶部白光，底部微灰)
+                // 极简微灰棱镜描边
                 .border(
-                    BorderStroke(
-                        width = 1.dp,
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.White,
-                                Color(0xFFE2E8F0).copy(alpha = 0.85f),
-                                Color(0xFFCBD5E1).copy(alpha = 0.60f)
-                            )
-                        )
-                    ),
-                    shape = RoundedCornerShape(32.dp)
+                    BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                    shape = RoundedCornerShape(33.dp)
                 )
         ) {
-            // 顶部 1px 倒角镜面反光线 (Specular Glass Top Rim)
+            // 顶部 1px 镜面受光反光线 (Specular Glass Top Rim)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(1.dp)
                     .align(Alignment.TopCenter)
+                    .padding(horizontal = 24.dp)
                     .background(
                         brush = Brush.horizontalGradient(
                             colors = listOf(
                                 Color.Transparent,
                                 Color.White,
-                                Color.White.copy(alpha = 0.95f),
+                                Color.White,
                                 Color.Transparent
                             )
                         )
                     )
             )
 
-            // 液态流体水滴胶囊指示器 (跟着选中的 Tab 滑移)
+            // 液态流体水滴胶囊指示器 (无外描边、纯净温润浅灰胶囊，顺滑滑移)
             if (animatedCenterX > 0f || currentSelectedIndex == 0) {
-                val blobWidth = 58.dp
-                val blobHeight = 44.dp
+                val blobWidth = 50.dp
+                val blobHeight = 48.dp
                 val blobWidthPx = with(density) { blobWidth.toPx() }
                 val blobLeftPx = animatedCenterX - (blobWidthPx / 2f)
 
@@ -183,37 +174,18 @@ fun LiquidGlassBottomBar(
                             .offset(x = with(density) { blobLeftPx.toDp() })
                             .width(blobWidth)
                             .height(blobHeight)
-                            .clip(RoundedCornerShape(22.dp))
-                            // 白色液态玻璃上的水滴底色 (温润的浅灰胶囊与微晕)
-                            .background(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        Color(0xFF0F172A).copy(alpha = 0.08f),
-                                        Color(0xFF0F172A).copy(alpha = 0.03f),
-                                        Color.Transparent
-                                    ),
-                                    radius = with(density) { 36.dp.toPx() }
-                                )
-                            )
-                            .background(Color(0xFFF1F5F9).copy(alpha = 0.80f))
-                            // 水滴微光内线
-                            .border(
-                                width = 1.dp,
-                                brush = Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color(0xFFCBD5E1).copy(alpha = 0.80f),
-                                        Color(0xFFE2E8F0).copy(alpha = 0.40f)
-                                    )
-                                ),
-                                shape = RoundedCornerShape(22.dp)
-                            )
+                            .clip(RoundedCornerShape(16.dp))
+                            // 无描边纯净流体背景
+                            .background(Color(0xFFF1F5F9))
                     )
                 }
             }
 
-            // Tab 图标与标签列表
+            // Tab 图标与标签列表 (两侧预留 8dp 内边距，避免端项碰撞圆角)
             Row(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 8.dp),
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -255,17 +227,16 @@ private fun LiquidNavItemView(
     onPositioned: (centerX: Float, width: Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // 弹性缩放动画
-    val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.15f else 1.0f,
+    // 仅针对图标进行细腻弹性微缩放，文字保持稳定清晰
+    val iconScale by animateFloatAsState(
+        targetValue = if (isSelected) 1.08f else 1.0f,
         animationSpec = spring(
-            dampingRatio = 0.65f,
+            dampingRatio = 0.70f,
             stiffness = Spring.StiffnessMediumLow
         ),
-        label = "nav_item_scale"
+        label = "nav_icon_scale"
     )
 
-    // 图标和文字颜色渐变
     val iconColor by animateColorAsState(
         targetValue = if (isSelected) activeColor else inactiveColor,
         animationSpec = tween(durationMillis = 200),
@@ -294,10 +265,12 @@ private fun LiquidNavItemView(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier.scale(scale)
+            verticalArrangement = Arrangement.Center
         ) {
-            Box(contentAlignment = Alignment.Center) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.scale(iconScale)
+            ) {
                 Icon(
                     imageVector = if (isSelected && item.activeIcon != null) item.activeIcon else item.icon,
                     contentDescription = item.title,
@@ -326,14 +299,14 @@ private fun LiquidNavItemView(
                 }
             }
 
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(3.dp))
 
             Text(
                 text = item.title,
-                fontSize = 10.sp,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                fontSize = 11.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                 color = labelColor,
-                letterSpacing = 0.5.sp
+                letterSpacing = 0.2.sp
             )
         }
     }
