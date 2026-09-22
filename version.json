@@ -1,0 +1,10 @@
+{
+  "versionCode": 15,
+  "versionName": "2.8.5",
+  "releaseDate": "2026-09-22",
+  "title": "三角洲助手 v2.8.5 (避难所套利版)",
+  "changelog": "• 特勤处工作台制造利润榜：防具/弹药/医疗/枪械 4 大工作台利润与时薪实时测算\n• 高级子弹自选包套利：3~5 级子弹自选包价值排行榜与首选推荐\n• 精简架构：彻底移除冗余战绩，全界面 60/120 FPS 满帧极速丝滑",
+  "apkUrl": "https://github.com/manaxh88/DeltaTactics/releases/download/v2.8.5/三角洲助手_v2.8.5_避难所套利版.apk",
+  "browserUrl": "https://github.com/manaxh88/DeltaTactics/releases/latest",
+  "forceUpdate": false
+}

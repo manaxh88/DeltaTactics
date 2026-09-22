@@ -52,6 +52,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -87,9 +88,19 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import com.delta.tactics.data.repository.AppUpdateRepository
 import com.delta.tactics.data.repository.ProfitRepository
+import com.delta.tactics.domain.model.AppUpdateInfo
+import com.delta.tactics.domain.model.UpdateDownloadState
 import com.delta.tactics.presentation.profit.CraftProfitBottomSheet
 import com.delta.tactics.presentation.profit.BulletProfitBottomSheet
+import com.delta.tactics.presentation.update.UpdateDialog
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.material.icons.filled.SystemUpdate
+import androidx.compose.material.icons.filled.Sync
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
@@ -118,6 +129,26 @@ fun HomeDashboardScreen(
     val profitRepository = remember { ProfitRepository(context) }
     val craftRecipes = remember { profitRepository.getCraftRecipes() }
     val bulletPacks = remember { profitRepository.getBulletPacks() }
+    val appUpdateRepository = remember { AppUpdateRepository(context) }
+
+    var updateInfo by remember { mutableStateOf<AppUpdateInfo?>(null) }
+    var showUpdateDialog by remember { mutableStateOf(false) }
+    var isCheckingUpdate by remember { mutableStateOf(false) }
+    var downloadState by remember { mutableStateOf<UpdateDownloadState>(UpdateDownloadState.Idle) }
+    var downloadedApkFile by remember { mutableStateOf<java.io.File?>(null) }
+
+    // 冷启动 2.5 秒后在后台低优先级静默检查新版本
+    LaunchedEffect(Unit) {
+        delay(2500)
+        val result = appUpdateRepository.checkUpdate(currentVersionCode = 15)
+        if (result.isSuccess) {
+            val info = result.getOrNull()
+            if (info != null && info.hasUpdate) {
+                updateInfo = info
+                showUpdateDialog = true
+            }
+        }
+    }
 
     val listState = rememberLazyListState()
     var currentNavTab by remember { mutableIntStateOf(0) }
@@ -351,9 +382,71 @@ fun HomeDashboardScreen(
         if (showProfileSheet) {
             ProfileBottomSheet(
                 sheetState = profileSheetState,
+                isCheckingUpdate = isCheckingUpdate,
+                onCheckUpdate = {
+                    if (isCheckingUpdate) return@ProfileBottomSheet
+                    isCheckingUpdate = true
+                    coroutineScope.launch {
+                        val res = appUpdateRepository.checkUpdate(currentVersionCode = 15)
+                        isCheckingUpdate = false
+                        if (res.isSuccess) {
+                            val info = res.getOrNull()
+                            if (info != null && info.hasUpdate) {
+                                updateInfo = info
+                                showUpdateDialog = true
+                            } else {
+                                android.widget.Toast.makeText(context, "当前已是最新版本 (v2.8.5)", android.widget.Toast.LENGTH_SHORT).show()
+                                snackbarHostState.showSnackbar("当前已是最新版本 (v2.8.5)")
+                            }
+                        } else {
+                            android.widget.Toast.makeText(context, "检查更新失败，请检查网络连接", android.widget.Toast.LENGTH_SHORT).show()
+                            snackbarHostState.showSnackbar("检查更新失败，请检查网络连接")
+                        }
+                    }
+                },
                 onDismissRequest = {
                     showProfileSheet = false
                     currentNavTab = 0
+                }
+            )
+        }
+
+        // 在线版本更新弹窗
+        if (showUpdateDialog && updateInfo != null) {
+            UpdateDialog(
+                updateInfo = updateInfo!!,
+                downloadState = downloadState,
+                onStartDownload = {
+                    coroutineScope.launch {
+                        downloadState = UpdateDownloadState.Downloading(0f, 0L, 1L)
+                        val result = appUpdateRepository.downloadApk(updateInfo!!.apkUrl) { progress, cur, total ->
+                            downloadState = UpdateDownloadState.Downloading(progress, cur, total)
+                        }
+                        if (result.isSuccess) {
+                            val file = result.getOrNull()
+                            if (file != null) {
+                                downloadedApkFile = file
+                                downloadState = UpdateDownloadState.Success(file)
+                                appUpdateRepository.installApk(file)
+                            }
+                        } else {
+                            val err = result.exceptionOrNull()?.message ?: "下载中断"
+                            downloadState = UpdateDownloadState.Error(err)
+                        }
+                    }
+                },
+                onInstall = {
+                    downloadedApkFile?.let { file ->
+                        appUpdateRepository.installApk(file)
+                    }
+                },
+                onBrowserDownload = {
+                    val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(updateInfo!!.browserUrl))
+                    context.startActivity(browserIntent)
+                },
+                onDismiss = {
+                    showUpdateDialog = false
+                    downloadState = UpdateDownloadState.Idle
                 }
             )
         }
@@ -1555,6 +1648,8 @@ private fun KeyRoomCard(
 @Composable
 private fun ProfileBottomSheet(
     sheetState: SheetState,
+    isCheckingUpdate: Boolean,
+    onCheckUpdate: () -> Unit,
     onDismissRequest: () -> Unit
 ) {
     ModalBottomSheet(
@@ -1619,6 +1714,88 @@ private fun ProfileBottomSheet(
                         lineHeight = 18.sp,
                         color = TextSecondaryGray
                     )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 在线版本检查与更新卡片
+            Surface(
+                color = CardWhite,
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, Color(0xFFF1F5F9), RoundedCornerShape(16.dp))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "在线版本检查",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimaryDark
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(Color(0xFFE8F5E9))
+                                    .padding(horizontal = 5.dp, vertical = 1.dp)
+                            ) {
+                                Text(
+                                    text = "GitHub",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFF2E7D32)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(3.dp))
+                        Text(
+                            text = "当前版本: v2.8.5 (Build 15)",
+                            fontSize = 11.sp,
+                            color = TextSecondaryGray
+                        )
+                    }
+
+                    Button(
+                        onClick = onCheckUpdate,
+                        enabled = !isCheckingUpdate,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = TacticalOrange,
+                            contentColor = Color.White
+                        ),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                        modifier = Modifier.height(36.dp)
+                    ) {
+                        if (isCheckingUpdate) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(text = "检查中", fontSize = 12.sp)
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Sync,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(text = "检查更新", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
         }
