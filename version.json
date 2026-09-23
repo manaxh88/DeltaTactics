@@ -1,10 +1,10 @@
 {
-  "versionCode": 25,
-  "versionName": "2.9.5",
+  "versionCode": 26,
+  "versionName": "3.0.0",
   "releaseDate": "2026-09-23",
-  "title": "三角洲战术助手 v2.9.5 (官方满改外观大图与全枪械方案库)",
-  "changelog": "• 官方真实满改 3D 外观图全量接入：直连腾讯官方微社区渲染 CDN，完整呈现装配消音管、高倍/全息瞄具、倾角握把与特种枪托等真实满改外观\n• 全量 71 种武器精选方案底包（188 套方案）：包含职业战队（eStar/JDG/LGD等）与大神实战调校方案、合法改枪码与预估造价，离线免网秒开\n• 三级缓存与在线同步架构：GunsmithRepository 支持开屏预取与官方方案增量刷新\n• 改枪抽屉交互全面升级：新增枪械/选手/配件即时搜索框、金色创作者徽章、造价标签与分类快速切换\n• 首页热门配装横向轮播卡片升级：直接呈现真实满改效果与创作者认证",
-  "apkUrl": "https://ghfast.top/https://github.com/manaxh88/DeltaTactics/releases/download/v2.9.5/DeltaTactics-v2.9.5.apk",
+  "title": "三角洲战术助手 v3.0.0 (底栏独立改枪工坊 · 1497套全网满改方案)",
+  "changelog": "• 全网改枪方案库史诗级扩容 (1,497 套方案)：双平台全量聚合 shushu.fan 官方/社区库与 orzice.com 逆向解密库，覆盖全武器 100% 满改外观大图与合法改枪码\n• 底栏架构重排升级：全新液态玻璃底栏结构，从左至右依次为「首页、改枪、卡战备、任务、我的」\n• 独立「改枪」顶级工坊页面：直观展示真实满改 3D 外观、作者战队徽章、造价标签、一键复制及安全防遮挡内边距\n• 金刚区战术解密中心：解密迁移至首页快捷入口，集成摩斯电码双模解码与每日地图密码速查\n• 客户端无感缓存升级与多通道网络容灾：底包数量大幅扩容时自动覆盖升级旧缓存，国内直通加速镜像保障顺畅更新",
+  "apkUrl": "https://ghfast.top/https://github.com/manaxh88/DeltaTactics/releases/download/v3.0.0/DeltaTactics-v3.0.0.apk",
   "browserUrl": "https://github.com/manaxh88/DeltaTactics/releases/latest",
   "forceUpdate": false
 }
