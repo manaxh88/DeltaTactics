@@ -219,7 +219,7 @@ fun ProfileScreen(
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = "三角洲战术助手 v2.9.0 (实时战术资讯与官方公告版)",
+                            text = "三角洲战术助手 v2.9.1 (改枪码与资讯滑动体验优化版)",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimaryDark
@@ -227,7 +227,7 @@ fun ProfileScreen(
                     }
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "• 全面接入三角洲行动官方与鼠鼠工具 (shushu.fan) 实时战术资讯流\n• 首页战术资讯板块升级为官方动态海报与阅读/点赞实时数据\n• 新增「战术资讯详情」弹窗，自适应高清长图海报与富文本排版\n• 点击全部支持展开完整往期资讯列表，支持分页与往期公告回溯\n• 双重离线秒开保障，无网与弱网环境平滑展示官方种子数据",
+                        text = "• 修复战术资讯详情文章与官方图报无法向下滑动浏览的问题 (引入原生嵌套滑动 WebView)\n• 修复资讯详情在正文顶部向下滑动可丝滑下拉收起抽屉\n• 热门改枪配装增加右上角一键关闭按钮与全分类多武器丰富配置\n• 优化改枪码抽屉手势响应，支持流畅向下浏览与下拉退出\n• 增强网络图片与富文本自适应渲染手感",
                         fontSize = 12.sp,
                         color = TextSecondaryGray,
                         lineHeight = 20.sp

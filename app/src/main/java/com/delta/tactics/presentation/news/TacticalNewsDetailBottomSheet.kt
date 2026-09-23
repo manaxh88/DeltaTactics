@@ -256,7 +256,7 @@ fun TacticalNewsDetailBottomSheet(
 }
 
 /**
- * 优雅内嵌 WebView 渲染 HTML 文章，支持图片自适应全宽、手势缩放与流畅排版
+ * 优雅内嵌 NestedScrollWebView 渲染 HTML 文章，支持图片自适应全宽、手势缩放与流畅排版及手势嵌套下拉
  */
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
@@ -269,7 +269,7 @@ private fun ArticleHtmlViewer(
     AndroidView(
         modifier = modifier,
         factory = { ctx ->
-            WebView(ctx).apply {
+            NestedScrollWebView(ctx).apply {
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
                 isVerticalScrollBarEnabled = true
                 isHorizontalScrollBarEnabled = false
@@ -313,6 +313,13 @@ private fun buildStyledHtml(rawHtml: String): String {
                     box-sizing: border-box;
                     margin: 0;
                     padding: 0;
+                }
+                html, body {
+                    width: 100%;
+                    min-height: 100%;
+                    overflow-x: hidden;
+                    overflow-y: auto;
+                    -webkit-overflow-scrolling: touch;
                 }
                 body {
                     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;

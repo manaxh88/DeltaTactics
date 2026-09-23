@@ -126,6 +126,84 @@ object GunsmithBuildRepository {
             description = "发射亚音速重弹的近战推土机，两枪击破5级重甲，在据点争夺与撤离点防守中堪称绞肉机。",
             pros = listOf("毁灭级肉伤", "极限碎甲", "近距离霸凌", "重炮轰鸣"),
             keyAccessories = listOf("重型制退消焰器", "战术大倾角前握把", "全息近战镜", "20发双排重弹匣")
+        ),
+        GunsmithBuild(
+            id = "m16a4_burst",
+            gunName = "M16A4 突击步枪",
+            roleName = "三发点射 • 激光稳定",
+            category = "突击步枪",
+            caliber = "5.56×45mm",
+            buildCode = "M16-3390-BUR",
+            imageUrl = "https://playerhub.df.qq.com/playerhub/60004/object/18010000014.png",
+            specs = "后坐 -26% • 射程 52m • 点射散布趋零",
+            description = "三连发特化流派，后坐力几乎全消除，中远距离点名手感极佳，性价比极高的新老手通吃配装。",
+            pros = listOf("超稳点射", "极远射程", "极高精度", "经济实惠"),
+            keyAccessories = listOf("长步枪枪管", "竞技斜握把", "3倍突击瞄具", "40发轻量弹匣")
+        ),
+        GunsmithBuild(
+            id = "uzi_laser",
+            gunName = "UZI 冲锋枪",
+            roleName = "超轻机动 • 极速跑打",
+            category = "冲锋枪",
+            caliber = "9×19mm",
+            buildCode = "UZI-1120-RUN",
+            imageUrl = "https://playerhub.df.qq.com/playerhub/60004/object/18020000004.png",
+            specs = "射速 950 RPM • 跑打移速 +20% • 腰射极紧",
+            description = "极端追求机动性与室内腰射贴脸换甲，适合跑图搜刮、闪电战抢占高资源区撤离方案。",
+            pros = listOf("机动天花板", "腰射极小", "射速恐怖", "快速换弹"),
+            keyAccessories = listOf("微型消音器", "战术红外瞄具", "快速拔枪握把", "32发快拔弹匣")
+        ),
+        GunsmithBuild(
+            id = "sv98_bolt",
+            gunName = "SV-98 狙击步枪",
+            roleName = "快速拉栓 • 致命首发",
+            category = "狙击步枪",
+            caliber = "7.62×54mm R",
+            buildCode = "SV98-7721-SNP",
+            imageUrl = "https://playerhub.df.qq.com/playerhub/60004/object/18060000001.png",
+            specs = "拉栓速度 +35% • 射程 88m • 极速开镜",
+            description = "轻装游击狙击方案，大幅削减开镜与拉栓动作延迟，适合多点游走打靶与卡点偷袭。",
+            pros = listOf("极速拉栓", "轻装机动", "手感干脆", "爆头必死"),
+            keyAccessories = listOf("8倍战术狙击镜", "轻量化聚合物枪托", "战术消焰制退器", "快拔拉栓手柄")
+        ),
+        GunsmithBuild(
+            id = "svd_marksman",
+            gunName = "SVD 射手步枪",
+            roleName = "俄系经典 • 暴力连点",
+            category = "射手步枪",
+            caliber = "7.62×54mm R",
+            buildCode = "SVD-5510-DMR",
+            imageUrl = "https://playerhub.df.qq.com/playerhub/60004/object/18050000003.png",
+            specs = "单发 54 肉伤 • 连点稳定 • 穿甲等级 5+",
+            description = "单发高伤害半自动狙击，配合重装高穿甲弹药，两枪躯干直接击杀，中远距离统治力极强。",
+            pros = listOf("超高连射伤害", "强力破甲", "中远霸主", "弹道下坠小"),
+            keyAccessories = listOf("PSO-1专用瞄具", "加重狙击枪托", "战术消音器", "20发扩容弹匣")
+        ),
+        GunsmithBuild(
+            id = "m250_lmg",
+            gunName = "M250 轻机枪",
+            roleName = "火力堡垒 • 掩体压制",
+            category = "轻机枪/霰弹",
+            caliber = "6.8×51mm",
+            buildCode = "M250-9901-LMG",
+            imageUrl = "https://playerhub.df.qq.com/playerhub/60004/object/18040000003.png",
+            specs = "100发大弹箱 • 持续压制 • 穿透掩体",
+            description = "撤离点防守与团队架枪利器，大容量弹链支持全自动不间断扫射，对掩体后目标形成毁灭性穿透打击。",
+            pros = listOf("持久压制", "掩体穿透", "弹药充足", "火力威慑"),
+            keyAccessories = listOf("重型脚架", "战术补偿消焰器", "全息机枪镜", "100发弹药箱")
+        ),
+        GunsmithBuild(
+            id = "m1014_shotgun",
+            gunName = "M1014 霰弹枪",
+            roleName = "破门利器 • 贴脸秒杀",
+            category = "轻机枪/霰弹",
+            caliber = "12 Gauge",
+            buildCode = "M1014-4421-SG",
+            imageUrl = "https://playerhub.df.qq.com/playerhub/60004/object/18030000001.png",
+            specs = "半自动连喷 • 8发鹿弹 • 贴脸即融化",
+            description = "CQB室内遭遇战终极近战杀器，半自动连续倾泻鹿弹，近身一枪碎甲两枪带走。",
+            pros = listOf("极速连喷", "近战秒杀", "防守核武", "威慑十足"),
+            keyAccessories = listOf("加长弹仓管", "收束喉缩枪口", "战术快拔握把", "微型反射瞄具")
         )
     )
 

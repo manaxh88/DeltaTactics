@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.*
@@ -56,7 +57,7 @@ fun HotGunsmithBottomSheet(
     onCopyCode: (gun: String, code: String) -> Unit
 ) {
     var selectedCategory by remember { mutableStateOf("全部") }
-    val categories = remember { listOf("全部", "突击步枪", "冲锋枪", "狙击步枪", "射手步枪") }
+    val categories = remember { listOf("全部", "突击步枪", "冲锋枪", "狙击步枪", "射手步枪", "轻机枪/霰弹") }
 
     val filteredBuilds = remember(selectedCategory) {
         if (selectedCategory == "全部") {
@@ -79,15 +80,18 @@ fun HotGunsmithBottomSheet(
                 .fillMaxHeight(0.88f)
                 .padding(bottom = 24.dp)
         ) {
-            // 顶栏标题
-            Column(
+            // 顶栏标题与关闭按钮
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
+                    .padding(horizontal = 20.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.weight(1f)
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Tune,
@@ -95,19 +99,35 @@ fun HotGunsmithBottomSheet(
                         tint = TacticalOrange,
                         modifier = Modifier.size(24.dp)
                     )
-                    Text(
-                        text = "热门改枪配装 • 战术抄作业",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimaryDark
+                    Column {
+                        Text(
+                            text = "热门改枪配装 • 战术抄作业",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimaryDark
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "主流干员排位精选搭配，附官方高清渲染与一键改枪码",
+                            fontSize = 11.sp,
+                            color = TextSecondaryGray,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                IconButton(
+                    onClick = onDismissRequest,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "关闭",
+                        tint = TextSecondaryGray,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "主流干员排位精选搭配，附官方枪械高清渲染与一键改枪码",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondaryGray
-                )
             }
 
             Spacer(modifier = Modifier.height(14.dp))
