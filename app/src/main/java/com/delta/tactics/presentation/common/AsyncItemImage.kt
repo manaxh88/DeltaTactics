@@ -21,7 +21,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.delta.tactics.core.cache.ItemImageDiskCache
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
@@ -50,8 +52,9 @@ object ItemImageMemoryCache {
 }
 
 /**
- * 战术装备/武器透明高清图片异步加载组件
- * 纯原生 Compose + Coroutines + 内存 LRU 缓存，无外部第三方依赖，低开销、高性能
+ * 战术装备/武器/房卡/资讯图片异步加载组件
+ * 采用【内存 LRU -> 本地磁盘持久化 -> 网络流式下载】三级缓存架构
+ * 离线秒开、零重复网络开销
  */
 @Composable
 fun AsyncItemImage(
@@ -62,6 +65,7 @@ fun AsyncItemImage(
     placeholder: (@Composable () -> Unit)? = null,
     fallback: (@Composable () -> Unit)? = null
 ) {
+    val context = LocalContext.current.applicationContext
     var cachedBitmap by remember(url) { mutableStateOf(ItemImageMemoryCache.get(url)) }
     var isLoading by remember(url) { mutableStateOf(cachedBitmap == null && url.isNotBlank()) }
 
@@ -70,6 +74,7 @@ fun AsyncItemImage(
             isLoading = false
             return@LaunchedEffect
         }
+        // 1. 内存命中，直接使用
         val memoryHit = ItemImageMemoryCache.get(url)
         if (memoryHit != null) {
             cachedBitmap = memoryHit
@@ -79,27 +84,46 @@ fun AsyncItemImage(
 
         withContext(Dispatchers.IO) {
             try {
-                val conn = URL(url).openConnection() as HttpURLConnection
-                conn.connectTimeout = 6000
-                conn.readTimeout = 8000
-                conn.instanceFollowRedirects = true
-                conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android DeltaTactics)")
-                conn.doInput = true
-                conn.connect()
+                // 2. 检查本地磁盘持久化缓存（房卡、武器、已浏览封面等）
+                val diskHit = ItemImageDiskCache.get(context, url)
+                if (diskHit != null) {
+                    ItemImageMemoryCache.put(url, diskHit)
+                    withContext(Dispatchers.Main) {
+                        cachedBitmap = diskHit
+                        isLoading = false
+                    }
+                    return@withContext
+                }
+
+                // 3. 磁盘未命中，从网络下载并自动写入磁盘持久化
+                val conn = (URL(url).openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 6000
+                    readTimeout = 8000
+                    instanceFollowRedirects = true
+                    setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android DeltaTactics)")
+                    doInput = true
+                }
 
                 if (conn.responseCode == HttpURLConnection.HTTP_OK) {
-                    conn.inputStream.use { inputStream ->
-                        val decoded = BitmapFactory.decodeStream(inputStream)
+                    val bytes = conn.inputStream.use { it.readBytes() }
+                    if (bytes.isNotEmpty()) {
+                        // 异步持久化到磁盘
+                        ItemImageDiskCache.put(context, url, bytes)
+                        val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                         if (decoded != null) {
                             ItemImageMemoryCache.put(url, decoded)
-                            cachedBitmap = decoded
+                            withContext(Dispatchers.Main) {
+                                cachedBitmap = decoded
+                            }
                         }
                     }
                 }
             } catch (_: Throwable) {
-                // 网络异常或加载失败，fallback 接管
+                // 网络异常或加载失败，由 fallback 接管
             } finally {
-                isLoading = false
+                withContext(Dispatchers.Main) {
+                    isLoading = false
+                }
             }
         }
     }
@@ -124,15 +148,18 @@ fun AsyncItemImage(
                         placeholder()
                     } else {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(14.dp),
-                            strokeWidth = 1.5.dp,
-                            color = Color(0xFF94A3B8)
+                            modifier = Modifier.size(16.dp),
+                            color = Color(0xFF94A3B8),
+                            strokeWidth = 2.dp
                         )
                     }
                 }
                 else -> {
                     if (fallback != null) {
                         fallback()
+                    } else {
+                        // 默认占位占空
+                        Box(modifier = Modifier.fillMaxSize())
                     }
                 }
             }

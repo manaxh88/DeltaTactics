@@ -44,12 +44,14 @@ class MainActivity : ComponentActivity() {
             window.isStatusBarContrastEnforced = false
         }
 
-        // 冷启动或开屏静默同步各模块数据（带 1 小时缓存有效期校验）
+        // 冷启动或开屏静默同步各模块数据（带 1 小时缓存有效期校验）与图片预热
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 CardLoadoutRepository(applicationContext).fetchCardLoadoutData(force = false)
-                KeyRoomRepository(applicationContext).syncKeyRoomsFromWeb(force = false)
-                TacticalNewsRepository().fetchArticles(page = 1, force = false)
+                val keyRepo = KeyRoomRepository(applicationContext)
+                keyRepo.syncKeyRoomsFromWeb(force = false)
+                keyRepo.preloadKeyRoomImages(applicationContext)
+                TacticalNewsRepository(applicationContext).fetchArticles(page = 1, force = false)
             } catch (e: Exception) {
                 e.printStackTrace()
             }

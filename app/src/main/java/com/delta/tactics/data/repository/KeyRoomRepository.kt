@@ -1,6 +1,7 @@
 package com.delta.tactics.data.repository
 
 import android.content.Context
+import com.delta.tactics.core.cache.ItemImageDiskCache
 import com.delta.tactics.domain.model.KeyRoomCardItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -259,6 +260,17 @@ class KeyRoomRepository(private val context: Context) {
                 .apply()
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    /**
+     * 后台异步预热钥匙房卡面图片至磁盘持久化缓存
+     */
+    suspend fun preloadKeyRoomImages(ctx: Context = context) = withContext(Dispatchers.IO) {
+        val keys = getAllKeys()
+        val uniqueUrls = keys.map { it.imgUrl }.filter { it.isNotBlank() }.distinct()
+        for (url in uniqueUrls) {
+            ItemImageDiskCache.preload(ctx, url)
         }
     }
 }

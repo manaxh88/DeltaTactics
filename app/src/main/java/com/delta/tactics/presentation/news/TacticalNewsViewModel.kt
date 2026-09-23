@@ -1,6 +1,7 @@
 package com.delta.tactics.presentation.news
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.delta.tactics.data.repository.TacticalNewsRepository
 import com.delta.tactics.domain.model.TacticalNewsDetail
@@ -11,10 +12,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class TacticalNewsViewModel(
-    private val repository: TacticalNewsRepository = TacticalNewsRepository()
-) : ViewModel() {
+    application: Application
+) : AndroidViewModel(application) {
 
-    private val _newsList = MutableStateFlow<List<TacticalNewsItem>>(repository.getFallbackNewsList())
+    private val repository: TacticalNewsRepository = TacticalNewsRepository(application)
+
+    // 优先加载本地磁盘持久化的资讯列表，实现无白屏开屏秒显与离线支持
+    private val _newsList = MutableStateFlow<List<TacticalNewsItem>>(repository.getDiskCachedNewsList())
     val newsList: StateFlow<List<TacticalNewsItem>> = _newsList.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
@@ -40,12 +44,12 @@ class TacticalNewsViewModel(
     }
 
     /**
-     * 加载/刷新第一页资讯
+     * 加载/刷新第一页资讯 (自动增量合并并持久化至本地磁盘)
      */
     fun loadNews(force: Boolean = false) {
         viewModelScope.launch {
             _isLoading.value = true
-            val result = repository.fetchArticles(page = 1, limit = 20)
+            val result = repository.fetchArticles(page = 1, limit = 20, force = force)
             result.onSuccess { items ->
                 if (items.isNotEmpty()) {
                     _newsList.value = items
@@ -83,7 +87,7 @@ class TacticalNewsViewModel(
     }
 
     /**
-     * 选择并拉取文章详情
+     * 选择并拉取文章详情 (优先直接命中本地磁盘持久化缓存，秒开老新闻)
      */
     fun selectArticle(threadId: Long) {
         viewModelScope.launch {

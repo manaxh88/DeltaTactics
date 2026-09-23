@@ -1,20 +1,43 @@
 package com.delta.tactics.data.repository
 
+import android.content.Context
+import android.util.Log
 import com.delta.tactics.domain.model.TacticalNewsDetail
 import com.delta.tactics.domain.model.TacticalNewsItem
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
+import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
-class TacticalNewsRepository {
+class TacticalNewsRepository(private val context: Context? = null) {
 
     private val baseUrl = "https://www.shushu.fan/api/articles"
     private val detailCache = mutableMapOf<Long, TacticalNewsDetail>()
     private var cachedNewsList: List<TacticalNewsItem>? = null
     private var lastFetchTime: Long = 0L
     private val cacheDurationMs = 60 * 60 * 1000L // 1 小时
+
+    private val newsDir: File? by lazy {
+        context?.filesDir?.resolve("news_cache")?.also {
+            if (!it.exists()) it.mkdirs()
+        }
+    }
+
+    private val detailsDir: File? by lazy {
+        newsDir?.resolve("details")?.also {
+            if (!it.exists()) it.mkdirs()
+        }
+    }
+
+    private val listFile: File? by lazy {
+        newsDir?.resolve("news_list.json")
+    }
 
     /**
      * 规范化图片与资源 URL (例如补齐 //static.gametalk.qq.com 前的 https:)
@@ -29,7 +52,29 @@ class TacticalNewsRepository {
     }
 
     /**
-     * 分页拉取战术资讯列表 (支持 1 小时缓存与跨天自动刷新)
+     * 同步/快速获取本地磁盘已持久化的资讯列表（用于冷启动秒开与断网离线展现）
+     */
+    fun getDiskCachedNewsList(): List<TacticalNewsItem> {
+        cachedNewsList?.let { return it }
+
+        val file = listFile
+        if (file != null && file.exists() && file.length() > 0) {
+            try {
+                val json = file.readText(Charsets.UTF_8)
+                val items = parseArticlesJson(json)
+                if (items.isNotEmpty()) {
+                    cachedNewsList = items
+                    return items
+                }
+            } catch (e: Exception) {
+                Log.w("TacticalNewsRepo", "Failed to read disk news list: ${e.message}")
+            }
+        }
+        return getFallbackNewsList()
+    }
+
+    /**
+     * 分页拉取战术资讯列表 (支持本地磁盘持久化、增量合并与 1 小时缓存策略)
      */
     suspend fun fetchArticles(page: Int = 1, limit: Int = 20, force: Boolean = false): Result<List<TacticalNewsItem>> = withContext(Dispatchers.IO) {
         if (!force && page == 1 && cachedNewsList != null && (System.currentTimeMillis() - lastFetchTime < cacheDurationMs)) {
@@ -48,9 +93,8 @@ class TacticalNewsRepository {
             }
 
             if (conn.responseCode != HttpURLConnection.HTTP_OK) {
-                // 如果是第一页且有本地缓存，则优雅降级返回缓存/兜底数据
                 if (page == 1) {
-                    val fallback = cachedNewsList ?: getFallbackNewsList()
+                    val fallback = getDiskCachedNewsList()
                     return@withContext Result.success(fallback)
                 }
                 return@withContext Result.failure(Exception("HTTP ${conn.responseCode}"))
@@ -60,18 +104,170 @@ class TacticalNewsRepository {
             val parsedList = parseArticlesJson(body)
 
             if (page == 1) {
-                cachedNewsList = parsedList
+                // 增量合并策略：保留本地历史老新闻，将最新拉取到的新闻合并并去重
+                val mergedList = mergeNewsList(parsedList)
+                cachedNewsList = mergedList
                 lastFetchTime = System.currentTimeMillis()
+                // 写入磁盘持久化
+                saveNewsListToDisk(mergedList)
+
+                // 预加载前 3 篇最新文章详情至本地，点击秒开
+                preloadTopArticles(mergedList.take(3))
+                return@withContext Result.success(mergedList)
             }
 
             Result.success(parsedList)
         } catch (e: Exception) {
-            // 网络异常时，如果是第一页直接返回缓存或离线种子数据
+            // 网络异常时，如果是第一页直接返回本地磁盘持久化数据
             if (page == 1) {
-                val fallback = cachedNewsList ?: getFallbackNewsList()
+                val fallback = getDiskCachedNewsList()
                 return@withContext Result.success(fallback)
             }
             Result.failure(e)
+        }
+    }
+
+    /**
+     * 增量合并新旧资讯列表，去重并保持最新时间排序
+     */
+    private fun mergeNewsList(newItems: List<TacticalNewsItem>): List<TacticalNewsItem> {
+        val existing = getDiskCachedNewsList()
+        val map = LinkedHashMap<Long, TacticalNewsItem>()
+        // 先放入最新拉取的数据
+        for (item in newItems) {
+            map[item.threadId] = item
+        }
+        // 再补充本地已有但新列表中未包含的老新闻
+        for (item in existing) {
+            if (!map.containsKey(item.threadId)) {
+                map[item.threadId] = item
+            }
+        }
+        return map.values.toList()
+    }
+
+    /**
+     * 将资讯列表持久化到内部磁盘
+     */
+    private fun saveNewsListToDisk(items: List<TacticalNewsItem>) {
+        val file = listFile ?: return
+        try {
+            val root = JSONObject()
+            root.put("success", true)
+            val dataObj = JSONObject()
+            val itemsArr = JSONArray()
+            for (item in items) {
+                val obj = JSONObject().apply {
+                    put("threadID", item.threadId)
+                    put("dataID", item.dataId)
+                    put("title", item.title)
+                    put("cover", item.coverUrl)
+                    put("author", item.author)
+                    put("avatar", item.avatarUrl)
+                    put("createdAt", item.createdAt)
+                    put("viewCount", item.viewCount)
+                    put("likedCount", item.likedCount)
+                }
+                itemsArr.put(obj)
+            }
+            dataObj.put("items", itemsArr)
+            root.put("data", dataObj)
+
+            val tmp = File(file.parentFile, "${file.name}.tmp")
+            FileOutputStream(tmp).use { fos ->
+                fos.write(root.toString().toByteArray(Charsets.UTF_8))
+                fos.flush()
+            }
+            tmp.renameTo(file)
+        } catch (e: Exception) {
+            Log.w("TacticalNewsRepo", "Failed to save news list to disk: ${e.message}")
+        }
+    }
+
+    /**
+     * 拉取指定资讯的文章详情（老新闻永久磁盘缓存，零重复网络消耗）
+     */
+    suspend fun fetchArticleDetail(threadId: Long): Result<TacticalNewsDetail> = withContext(Dispatchers.IO) {
+        // 1. 内存缓存命中
+        detailCache[threadId]?.let { return@withContext Result.success(it) }
+
+        // 2. 本地磁盘持久化缓存命中（已发布的老新闻不会做改变，直接秒开）
+        val detailFile = detailsDir?.let { File(it, "$threadId.json") }
+        if (detailFile != null && detailFile.exists() && detailFile.length() > 0) {
+            try {
+                val json = detailFile.readText(Charsets.UTF_8)
+                val detail = parseArticleDetailJson(threadId, json)
+                if (detail != null) {
+                    detailCache[threadId] = detail
+                    return@withContext Result.success(detail)
+                }
+            } catch (e: Exception) {
+                Log.w("TacticalNewsRepo", "Failed to read disk detail for $threadId: ${e.message}")
+            }
+        }
+
+        // 3. 本地无缓存时请求网络（新发布的新闻）
+        try {
+            val endpoint = "$baseUrl/$threadId"
+            val conn = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+                connectTimeout = 6000
+                readTimeout = 8000
+                requestMethod = "GET"
+                setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+                setRequestProperty("Referer", "https://www.shushu.fan/")
+                setRequestProperty("Accept", "application/json")
+            }
+
+            if (conn.responseCode != HttpURLConnection.HTTP_OK) {
+                return@withContext Result.failure(Exception("HTTP ${conn.responseCode}"))
+            }
+
+            val body = conn.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+            val detail = parseArticleDetailJson(threadId, body)
+            if (detail != null) {
+                detailCache[threadId] = detail
+
+                // 原子写入本地磁盘永久保存
+                saveArticleDetailToDisk(threadId, body)
+
+                Result.success(detail)
+            } else {
+                Result.failure(Exception("未能解析到文章内容"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * 将文章详情持久化到磁盘
+     */
+    private fun saveArticleDetailToDisk(threadId: Long, jsonContent: String) {
+        val dir = detailsDir ?: return
+        try {
+            val target = File(dir, "$threadId.json")
+            val tmp = File(dir, "$threadId.json.tmp")
+            FileOutputStream(tmp).use { fos ->
+                fos.write(jsonContent.toByteArray(Charsets.UTF_8))
+                fos.flush()
+            }
+            tmp.renameTo(target)
+        } catch (e: Exception) {
+            Log.w("TacticalNewsRepo", "Failed to save article detail to disk: ${e.message}")
+        }
+    }
+
+    /**
+     * 后台静默预加载最新几篇资讯详情
+     */
+    private fun preloadTopArticles(items: List<TacticalNewsItem>) {
+        CoroutineScope(Dispatchers.IO).launch {
+            for (item in items) {
+                val detailFile = detailsDir?.let { File(it, "${item.threadId}.json") }
+                if (detailFile == null || !detailFile.exists()) {
+                    fetchArticleDetail(item.threadId)
+                }
+            }
         }
     }
 
@@ -115,40 +311,6 @@ class TacticalNewsRepository {
             }
         }
         return list
-    }
-
-    /**
-     * 拉取指定资讯的文章详情
-     */
-    suspend fun fetchArticleDetail(threadId: Long): Result<TacticalNewsDetail> = withContext(Dispatchers.IO) {
-        detailCache[threadId]?.let { return@withContext Result.success(it) }
-
-        try {
-            val endpoint = "$baseUrl/$threadId"
-            val conn = (URL(endpoint).openConnection() as HttpURLConnection).apply {
-                connectTimeout = 6000
-                readTimeout = 8000
-                requestMethod = "GET"
-                setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
-                setRequestProperty("Referer", "https://www.shushu.fan/")
-                setRequestProperty("Accept", "application/json")
-            }
-
-            if (conn.responseCode != HttpURLConnection.HTTP_OK) {
-                return@withContext Result.failure(Exception("HTTP ${conn.responseCode}"))
-            }
-
-            val body = conn.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
-            val detail = parseArticleDetailJson(threadId, body)
-            if (detail != null) {
-                detailCache[threadId] = detail
-                Result.success(detail)
-            } else {
-                Result.failure(Exception("未能解析到文章内容"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
     }
 
     /**

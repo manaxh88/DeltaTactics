@@ -219,7 +219,7 @@ fun ProfileScreen(
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = "三角洲战术助手 v2.9.2 (数据动态更新与钥匙房重构版)",
+                            text = "三角洲战术助手 v2.9.3 (房卡图片与战术资讯多级缓存版)",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimaryDark
@@ -227,7 +227,7 @@ fun ProfileScreen(
                     }
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "• 解决卡战备数据定格在21号的问题：接入官方实时数据源，实现 1 小时自动更新与开屏静默同步\n• 卡战备顶栏增加实时同步状态动画与手动点击刷新按钮\n• 全面重构钥匙房板块：全量接入 6 大地图 80 把真实钥匙市价、涨跌幅、星级与官方图标\n• 钥匙房增加六大地图分类筛选栏（大坝/航天/长弓/巴克什/监狱/AZ3）与快捷搜索\n• 为制造利润、子弹收益、钥匙房等所有底部弹窗统一新增右上角关闭按钮",
+                        text = "• 房卡与全局装备图片二级磁盘缓存：接入本地文件级持久化缓存与内存 LRU，离线无网秒开，告别重复下载\n• 资讯老新闻永久离线保存：官方公告与图报详情发布后不可变，已读/预热新闻永久持久化至本地磁盘，零等待秒开\n• 资讯列表增量去重合并：开屏优先秒显本地磁盘列表，后台增量合并新发布资讯，离线无缝阅读\n• 冷启动性能优化：开屏静默并行预热钥匙房 80 把卡面图片与头条资讯详情",
                         fontSize = 12.sp,
                         color = TextSecondaryGray,
                         lineHeight = 20.sp

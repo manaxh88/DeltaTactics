@@ -12,8 +12,8 @@ android {
         applicationId = "com.delta.tactics"
         minSdk = 26
         targetSdk = 34
-        versionCode = 22
-        versionName = "2.9.2"
+        versionCode = 23
+        versionName = "2.9.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
