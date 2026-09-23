@@ -55,6 +55,8 @@ import kotlinx.coroutines.launch
  */
 enum class GunsmithSortType(val label: String) {
     DEFAULT("🔥 热门推荐"),
+    PRICE_ASC("💰 经济造价"),
+    PRICE_DESC("💎 顶级满改"),
     PRO_TEAM("👑 战队精选"),
     ACCESSORIES("🔧 核心配件")
 }
@@ -141,6 +143,8 @@ fun GunsmithScreen(
 
         result = when (selectedSort) {
             GunsmithSortType.DEFAULT -> result
+            GunsmithSortType.PRICE_ASC -> result.sortedBy { b: GunsmithBuild -> if (b.price > 0) b.price else Long.MAX_VALUE }
+            GunsmithSortType.PRICE_DESC -> result.sortedByDescending { it.price }
             GunsmithSortType.PRO_TEAM -> result.sortedByDescending {
                 val a = it.author.lowercase()
                 a.contains("estar") || a.contains("jdg") || a.contains("lgd") ||
@@ -407,10 +411,14 @@ fun GunsmithScreen(
                     text = "方案列表 (${filteredBuilds.size})",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextSecondaryGray
+                    color = TextSecondaryGray,
+                    modifier = Modifier.padding(end = 6.dp)
                 )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     GunsmithSortType.values().forEach { sort ->
                         val isSortSelected = sort == selectedSort
                         Box(
@@ -561,22 +569,42 @@ fun GunsmithBuildDetailCard(
                     )
                 }
 
-                // 右上角战术特性徽标
-                val topBadge = build.pros.firstOrNull() ?: "战术满改"
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(8.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(TacticalDark.copy(alpha = 0.90f))
-                        .padding(horizontal = 8.dp, vertical = 3.dp)
-                ) {
-                    Text(
-                        text = topBadge,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFFFD700)
-                    )
+                // 右上角预估造价标签
+                if (build.price > 0) {
+                    val wan = build.price / 10000
+                    val qian = (build.price % 10000) / 1000
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(TacticalDark.copy(alpha = 0.90f))
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                    ) {
+                        Text(
+                            text = "造价: $wan.${qian}万",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFFFD700)
+                        )
+                    }
+                } else {
+                    val topBadge = build.pros.firstOrNull() ?: "战术满改"
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(TacticalDark.copy(alpha = 0.90f))
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                    ) {
+                        Text(
+                            text = topBadge,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFFFD700)
+                        )
+                    }
                 }
 
                 // 左下角创作者徽章
@@ -628,8 +656,18 @@ fun GunsmithBuildDetailCard(
                     )
                 }
 
-                // 核心参数规格 (过滤造价描述)
-                val validSpecs = if (build.specs.isNotBlank() && !build.specs.contains("造价")) build.specs else ""
+                // 核心参数规格
+                val validSpecs = if (build.specs.isNotBlank()) {
+                    if (build.specs.contains("•")) {
+                        build.specs.substringAfter("•").trim()
+                    } else if (build.specs.contains("造价")) {
+                        build.pros.firstOrNull() ?: "实战满改"
+                    } else {
+                        build.specs
+                    }
+                } else {
+                    build.pros.firstOrNull() ?: "实战满改"
+                }
                 if (validSpecs.isNotBlank()) {
                     Box(
                         modifier = Modifier

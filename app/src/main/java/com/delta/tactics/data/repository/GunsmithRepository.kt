@@ -32,8 +32,8 @@ class GunsmithRepository(private val context: Context) {
 
     companion object {
         private const val CACHE_DURATION_MS = 2 * 60 * 60 * 1000L // 2 小时缓存失效
-        private const val KEY_CACHE_JSON = "cached_gunsmith_json_v3_pure"
-        private const val KEY_CACHE_TIME = "cached_gunsmith_time_v3_pure"
+        private const val KEY_CACHE_JSON = "cached_gunsmith_json_v3_priced"
+        private const val KEY_CACHE_TIME = "cached_gunsmith_time_v3_priced"
         private const val OFFICIAL_API_URL = "https://www.shushu.fan/api/guns-code/official"
 
         fun normalizeCategory(gunName: String, rawCategory: String): String {
@@ -272,6 +272,12 @@ class GunsmithRepository(private val context: Context) {
                 val rawBuildCode = obj.optString("buildCode", "").trim()
                 val buildCode = if (rawBuildCode.contains("-")) rawBuildCode else "$gunName-烽火地带-$rawBuildCode"
 
+                val rawPrice = obj.optLong("price", 0L)
+                val priceWan = rawPrice / 10000
+                val priceQian = (rawPrice % 10000) / 1000
+                val defaultSpecs = if (rawPrice > 0) "预估造价 $priceWan.${priceQian}万 • 实战满改" else "官方赛事调校"
+                val specs = obj.optString("specs", defaultSpecs).ifBlank { defaultSpecs }
+
                 val build = GunsmithBuild(
                     id = obj.optString("id", "build_$i"),
                     gunName = gunName,
@@ -281,12 +287,12 @@ class GunsmithRepository(private val context: Context) {
                     buildCode = buildCode,
                     imageUrl = obj.optString("imageUrl", ""),
                     gunBasePic = obj.optString("gunBasePic", ""),
-                    specs = obj.optString("specs", ""),
+                    specs = specs,
                     description = obj.optString("description", ""),
                     pros = prosList,
                     keyAccessories = accList,
                     author = obj.optString("author", "官方精选"),
-                    price = 0L
+                    price = rawPrice
                 )
                 // 彻底过滤无满改图片或裸枪图片的方案
                 val isBareGun = build.imageUrl.isBlank() ||
@@ -374,7 +380,21 @@ class GunsmithRepository(private val context: Context) {
                 val rawDesc = item.optString("authorComment", "")
                 val cleanDesc = rawDesc.replace(Regex("<[^>]+>"), "").trim()
 
-                val specs = if (tagsList.isNotEmpty()) tagsList.first() else "官方赛事调校"
+                // 校验价格是否在合理范围 (几万到100万左右)
+                var safePrice = price
+                if (safePrice <= 0 || safePrice > 2000000) {
+                    val match = Regex("(\\d+)[wW万]").find(buildTitle)
+                    if (match != null) {
+                        safePrice = (match.groupValues[1].toLongOrNull() ?: 0L) * 10000L
+                    } else if (safePrice > 2000000) {
+                        safePrice = 0L // 异常过高重置为0
+                    }
+                }
+
+                val priceWan = safePrice / 10000
+                val priceQian = (safePrice % 10000) / 1000
+                val firstTag = tagsList.firstOrNull() ?: "官方认证"
+                val specs = if (safePrice > 0) "预估造价 $priceWan.${priceQian}万 • $firstTag" else firstTag
 
                 val isBare = previewPic.isBlank() || previewPic.contains("/object/") || previewPic == armsDetail.optString("pic", "")
                 if (!isBare) {
@@ -393,7 +413,7 @@ class GunsmithRepository(private val context: Context) {
                             pros = tagsList.take(4),
                             keyAccessories = if (accList.isNotEmpty()) accList.take(6) else listOf("战术消音", "光学瞄具", "竞技握把", "扩容弹匣"),
                             author = author,
-                            price = 0L
+                            price = safePrice
                         )
                     )
                 }
