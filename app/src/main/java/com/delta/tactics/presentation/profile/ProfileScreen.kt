@@ -63,6 +63,33 @@ fun ProfileScreen(
     val navBarsBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val statusBarTopPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
+    val installedVersionName = remember {
+        try {
+            val packageInfo = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                context.packageManager.getPackageInfo(context.packageName, android.content.pm.PackageManager.PackageInfoFlags.of(0))
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.getPackageInfo(context.packageName, 0)
+            }
+            packageInfo.versionName ?: "3.0.0"
+        } catch (e: Exception) {
+            "3.0.0"
+        }
+    }
+    val installedVersionCode = remember {
+        try {
+            val packageInfo = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                context.packageManager.getPackageInfo(context.packageName, android.content.pm.PackageManager.PackageInfoFlags.of(0))
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.getPackageInfo(context.packageName, 0)
+            }
+            androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(packageInfo).toInt()
+        } catch (e: Exception) {
+            26
+        }
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -159,7 +186,7 @@ fun ProfileScreen(
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "当前版本: v2.9.0 (Build 20)",
+                            text = "当前版本: v$installedVersionName (Build $installedVersionCode)",
                             fontSize = 12.sp,
                             color = TextSecondaryGray
                         )
