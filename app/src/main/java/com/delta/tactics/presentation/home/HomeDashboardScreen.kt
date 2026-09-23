@@ -41,6 +41,8 @@ import com.delta.tactics.presentation.navigation.rememberGlassBackdrop
 import com.delta.tactics.presentation.navigation.glassSource
 import com.delta.tactics.presentation.profile.ProfileScreen
 import com.delta.tactics.presentation.cipher.DecryptCenterScreen
+import com.delta.tactics.presentation.cipher.DecryptCenterBottomSheet
+import com.delta.tactics.presentation.gunsmith.GunsmithScreen
 import com.delta.tactics.domain.model.TacticalNewsItem
 import com.delta.tactics.presentation.news.TacticalNewsViewModel
 import com.delta.tactics.presentation.news.TacticalNewsDetailBottomSheet
@@ -175,11 +177,13 @@ fun HomeDashboardScreen(
     var showWeaponCompareSheet by remember { mutableStateOf(false) }
     var showKeyRoomsSheet by remember { mutableStateOf(false) }
     var showHotGunsmithSheet by remember { mutableStateOf(false) }
+    var showDecryptCenterSheet by remember { mutableStateOf(false) }
     val craftSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val bulletSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val weaponSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val keyRoomsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val hotGunsmithSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val decryptCenterSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val newsViewModel: TacticalNewsViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
     val newsList by newsViewModel.newsList.collectAsState()
@@ -200,7 +204,7 @@ fun HomeDashboardScreen(
             LiquidNavItem("首页", Icons.Outlined.Home, Icons.Filled.Home),
             LiquidNavItem("卡战备", Icons.Outlined.MonetizationOn, Icons.Filled.MonetizationOn),
             LiquidNavItem("任务", Icons.Outlined.Assignment, Icons.Filled.Assignment),
-            LiquidNavItem("解密", Icons.Outlined.Lock, Icons.Filled.Lock),
+            LiquidNavItem("改枪", Icons.Outlined.Tune, Icons.Filled.Tune),
             LiquidNavItem("我的", Icons.Outlined.Person, Icons.Filled.Person)
         )
     }
@@ -247,13 +251,13 @@ fun HomeDashboardScreen(
                 )
             }
 
-            // 3. 4 格快捷功能金刚区 (改枪配装 / 制造利润 / 子弹收益 / 钥匙房)
+            // 3. 4 格快捷功能金刚区 (战术解密 / 制造利润 / 子弹收益 / 钥匙房)
             item {
                 Spacer(modifier = Modifier.height(10.dp))
                 QuickNavGridSection(
                     onItemClick = { title ->
                         when (title) {
-                            "改枪配装" -> showHotGunsmithSheet = true
+                            "战术解密" -> showDecryptCenterSheet = true
                             "制造利润" -> showCraftProfitSheet = true
                             "子弹收益" -> showBulletProfitSheet = true
                             "武器对比" -> showWeaponCompareSheet = true
@@ -271,7 +275,7 @@ fun HomeDashboardScreen(
                     title = "热门配装",
                     actionText = "全部",
                     onMoreClick = {
-                        showHotGunsmithSheet = true
+                        currentNavTab = 3
                     }
                 )
             }
@@ -324,8 +328,8 @@ fun HomeDashboardScreen(
                 )
             }
             3 -> {
-                DecryptCenterScreen(
-                    viewModel = viewModel,
+                GunsmithScreen(
+                    onBack = { currentNavTab = 0 },
                     onShowToast = { msg ->
                         android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
                     }
@@ -439,6 +443,18 @@ fun HomeDashboardScreen(
             KeyRoomsBottomSheet(
                 sheetState = keyRoomsSheetState,
                 onDismissRequest = { showKeyRoomsSheet = false }
+            )
+        }
+
+        // 战术解密中心抽屉 (金刚区快捷功能)
+        if (showDecryptCenterSheet) {
+            DecryptCenterBottomSheet(
+                sheetState = decryptCenterSheetState,
+                viewModel = viewModel,
+                onDismissRequest = { showDecryptCenterSheet = false },
+                onShowToast = { msg ->
+                    android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
+                }
             )
         }
 
@@ -611,10 +627,10 @@ private fun QuickNavGridSection(
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         QuickNavSquareCard(
-            title = "改枪配装",
-            icon = Icons.Default.Adjust,
+            title = "战术解密",
+            icon = Icons.Default.Lock,
             modifier = Modifier.weight(1f),
-            onClick = { onItemClick("改枪配装") }
+            onClick = { onItemClick("战术解密") }
         )
         QuickNavSquareCard(
             title = "制造利润",
@@ -695,7 +711,10 @@ private fun SectionHeader(
         )
         if (actionText != null && onMoreClick != null) {
             Row(
-                modifier = Modifier.clickable { onMoreClick() },
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onMoreClick() }
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(

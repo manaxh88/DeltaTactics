@@ -8,18 +8,26 @@ import time
 sys.stdout.reconfigure(encoding='utf-8')
 headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
 
-def map_category(second_class):
-    if not second_class:
-        return "突击步枪"
-    if "突击步枪" in second_class or "战斗步枪" in second_class:
-        return "突击步枪"
-    if "冲锋枪" in second_class:
-        return "冲锋枪"
-    if "狙击步枪" in second_class:
+def map_category(second_class, name=""):
+    if any(k in name for k in ['狙击步枪', 'AWM', 'M700', 'SV-98']):
         return "狙击步枪"
-    if "射手步枪" in second_class:
+    if any(k in name for k in ['射手步枪', 'VSS', 'SVD', 'M14', 'Mini-14', 'SR-25']):
         return "射手步枪"
-    if "轻机枪" in second_class or "通用机枪" in second_class or "霰弹枪" in second_class:
+    if any(k in name for k in ['轻机枪', '机枪', '霰弹枪', 'M249', 'PKM', '725']):
+        return "轻机枪/霰弹"
+    if any(k in name for k in ['冲锋枪', 'SMG', 'UZI', 'MP5', 'Vector', 'P90', '勇士', '野牛', 'MK4']):
+        return "冲锋枪"
+    if any(k in name for k in ['突击步枪', '战斗步枪', 'CAR-15', 'AKS-74U', 'AR57', 'M4A1', 'K416', 'M7', 'AKM', 'AS Val', 'SG552', 'QBZ', 'AUG', 'G3', 'K437', 'PTR-32', 'MCX', 'MDR', 'ASh-12', 'AK-12']):
+        return "突击步枪"
+    if "步枪" in second_class:
+        return "突击步枪"
+    if "冲锋" in second_class:
+        return "冲锋枪"
+    if "狙击" in second_class:
+        return "狙击步枪"
+    if "射手" in second_class:
+        return "射手步枪"
+    if "机枪" in second_class or "霰弹" in second_class:
         return "轻机枪/霰弹"
     return "手枪/特种"
 
@@ -44,7 +52,7 @@ def main():
     for idx, g in enumerate(guns):
         name = g.get('objectName')
         sec_class = g.get('secondClassCN', '')
-        category = map_category(sec_class)
+        category = map_category(sec_class, name)
         gun_base_pic = g.get('pic', '')
         
         q = urllib.parse.quote(name)

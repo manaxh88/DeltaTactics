@@ -35,6 +35,41 @@ class GunsmithRepository(private val context: Context) {
         private const val KEY_CACHE_JSON = "cached_gunsmith_json"
         private const val KEY_CACHE_TIME = "cached_gunsmith_time"
         private const val OFFICIAL_API_URL = "https://www.shushu.fan/api/guns-code/official"
+
+        fun normalizeCategory(gunName: String, rawCategory: String): String {
+            if (gunName.contains("狙击步枪") || gunName.contains("AWM") || gunName.contains("M700") || gunName.contains("SV-98")) {
+                return "狙击步枪"
+            }
+            if (gunName.contains("射手步枪") || gunName.contains("VSS") || gunName.contains("SVD") || 
+                gunName.contains("M14") || gunName.contains("Mini-14") || gunName.contains("SR-25")) {
+                return "射手步枪"
+            }
+            if (gunName.contains("轻机枪") || gunName.contains("机枪") || gunName.contains("霰弹枪") || 
+                gunName.contains("M249") || gunName.contains("PKM") || gunName.contains("725")) {
+                return "轻机枪/霰弹"
+            }
+            if (gunName.contains("冲锋枪") || gunName.contains("SMG") || gunName.contains("UZI") || 
+                gunName.contains("MP5") || gunName.contains("Vector") || gunName.contains("P90") || 
+                gunName.contains("勇士") || gunName.contains("野牛") || gunName.contains("MK4")) {
+                return "冲锋枪"
+            }
+            if (gunName.contains("突击步枪") || gunName.contains("战斗步枪") || 
+                gunName.contains("CAR-15") || gunName.contains("AKS-74U") || 
+                gunName.contains("AR57") || gunName.contains("M4A1") ||
+                gunName.contains("K416") || gunName.contains("M7") || 
+                gunName.contains("AKM") || gunName.contains("AS Val") ||
+                gunName.contains("SG552") || gunName.contains("QBZ") ||
+                gunName.contains("AUG") || gunName.contains("G3") ||
+                gunName.contains("K437") || gunName.contains("PTR-32") ||
+                gunName.contains("MCX") || gunName.contains("MDR") ||
+                gunName.contains("ASh-12") || gunName.contains("AK-12")) {
+                return "突击步枪"
+            }
+            if (rawCategory.isNotBlank() && rawCategory != "手枪/特种") {
+                return rawCategory
+            }
+            return if (gunName.contains("手枪") || gunName.contains("93R") || gunName.contains("G18") || gunName.contains("沙漠之鹰") || gunName.contains(".357")) "手枪/特种" else "突击步枪"
+        }
     }
 
     /**
@@ -240,7 +275,7 @@ class GunsmithRepository(private val context: Context) {
                     id = obj.optString("id", "build_$i"),
                     gunName = gunName,
                     roleName = obj.optString("roleName", "官方精选方案"),
-                    category = obj.optString("category", "突击步枪"),
+                    category = normalizeCategory(gunName, obj.optString("category", "突击步枪")),
                     caliber = obj.optString("caliber", "通用"),
                     buildCode = buildCode,
                     imageUrl = obj.optString("imageUrl", ""),
@@ -284,14 +319,15 @@ class GunsmithRepository(private val context: Context) {
                 val code = if (rawCode.contains("-")) rawCode else "$gunName-烽火地带-$rawCode"
                 val secClass = armsDetail.optString("secondClassCN", "")
 
-                val category = when {
-                    secClass.contains("突击步枪") || secClass.contains("战斗步枪") -> "突击步枪"
+                val rawCategory = when {
+                    secClass.contains("突击步枪") || secClass.contains("战斗步枪") || secClass.contains("步枪") -> "突击步枪"
                     secClass.contains("冲锋枪") -> "冲锋枪"
                     secClass.contains("狙击步枪") -> "狙击步枪"
                     secClass.contains("射手步枪") -> "射手步枪"
                     secClass.contains("轻机枪") || secClass.contains("通用机枪") || secClass.contains("霰弹枪") -> "轻机枪/霰弹"
                     else -> "手枪/特种"
                 }
+                val category = normalizeCategory(gunName, rawCategory)
 
                 val previewPic = item.optString("previewPic").ifBlank {
                     item.optString("prePreviewPic").ifBlank {
