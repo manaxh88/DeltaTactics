@@ -202,9 +202,9 @@ fun HomeDashboardScreen(
     val navItems = remember {
         listOf(
             LiquidNavItem("首页", Icons.Outlined.Home, Icons.Filled.Home),
+            LiquidNavItem("改枪", Icons.Outlined.Tune, Icons.Filled.Tune),
             LiquidNavItem("卡战备", Icons.Outlined.MonetizationOn, Icons.Filled.MonetizationOn),
             LiquidNavItem("任务", Icons.Outlined.Assignment, Icons.Filled.Assignment),
-            LiquidNavItem("改枪", Icons.Outlined.Tune, Icons.Filled.Tune),
             LiquidNavItem("我的", Icons.Outlined.Person, Icons.Filled.Person)
         )
     }
@@ -275,7 +275,7 @@ fun HomeDashboardScreen(
                     title = "热门配装",
                     actionText = "全部",
                     onMoreClick = {
-                        currentNavTab = 3
+                        currentNavTab = 1
                     }
                 )
             }
@@ -317,22 +317,22 @@ fun HomeDashboardScreen(
             }
         }
     }
-    1 -> {
-                CardLoadoutScreen(
-                    onBack = { currentNavTab = 0 }
-                )
-            }
-            2 -> {
-                SeasonTasksScreen(
-                    onBack = { currentNavTab = 0 }
-                )
-            }
-            3 -> {
+            1 -> {
                 GunsmithScreen(
                     onBack = { currentNavTab = 0 },
                     onShowToast = { msg ->
                         android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
                     }
+                )
+            }
+            2 -> {
+                CardLoadoutScreen(
+                    onBack = { currentNavTab = 0 }
+                )
+            }
+            3 -> {
+                SeasonTasksScreen(
+                    onBack = { currentNavTab = 0 }
                 )
             }
             4 -> {
