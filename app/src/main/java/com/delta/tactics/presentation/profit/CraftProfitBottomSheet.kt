@@ -20,9 +20,12 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.layout.ContentScale
 import com.delta.tactics.core.ui.theme.*
 import com.delta.tactics.domain.model.CraftBenchType
 import com.delta.tactics.domain.model.CraftRecipe
+import com.delta.tactics.domain.model.GunsmithBuildRepository
+import com.delta.tactics.presentation.common.AsyncItemImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -215,6 +218,54 @@ private fun RecipeProfitRow(
                                 else -> TextSecondaryGray
                             }
                         )
+                    }
+
+                    // 武器透明高清图或工作台类型图标
+                    val weaponImg = GunsmithBuildRepository.getWeaponImageUrl(recipe.name)
+                    if (weaponImg.isNotBlank()) {
+                        Box(
+                            modifier = Modifier
+                                .size(width = 46.dp, height = 28.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color.White)
+                                .border(0.5.dp, Color(0xFFE2E8F0), RoundedCornerShape(6.dp))
+                                .padding(2.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            AsyncItemImage(
+                                url = weaponImg,
+                                contentDescription = recipe.name,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Fit
+                            )
+                        }
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(RoundedCornerShape(7.dp))
+                                .background(Color(0xFFF1F5F9)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = when (recipe.benchType) {
+                                    CraftBenchType.ARMOR -> Icons.Default.Shield
+                                    CraftBenchType.AMMO -> Icons.Default.Bolt
+                                    CraftBenchType.MEDICAL -> Icons.Default.LocalHospital
+                                    CraftBenchType.WEAPON -> Icons.Default.PrecisionManufacturing
+                                    else -> Icons.Default.Construction
+                                },
+                                contentDescription = null,
+                                tint = when (recipe.benchType) {
+                                    CraftBenchType.ARMOR -> TacticalOrange
+                                    CraftBenchType.AMMO -> Color(0xFFEAB308)
+                                    CraftBenchType.MEDICAL -> Color(0xFF10B981)
+                                    CraftBenchType.WEAPON -> Color(0xFF3B82F6)
+                                    else -> TextSecondaryGray
+                                },
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
 
                     Column {

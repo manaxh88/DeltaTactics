@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -199,6 +201,22 @@ private fun BulletOptionRow(bullet: BulletPackItem) {
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = if (bullet.isBest) Color(0xFF16A34A) else TextSecondaryGray
+                    )
+                }
+
+                // 子弹图标徽章
+                Box(
+                    modifier = Modifier
+                        .size(26.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(if (bullet.isBest) Color(0xFFDCFCE7) else Color(0xFFF1F5F9)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Bolt,
+                        contentDescription = null,
+                        tint = if (bullet.isBest) Color(0xFF16A34A) else TacticalOrange,
+                        modifier = Modifier.size(15.dp)
                     )
                 }
 

@@ -147,7 +147,7 @@ fun HomeDashboardScreen(
     // 冷启动 2.5 秒后在后台低优先级静默检查新版本
     LaunchedEffect(Unit) {
         delay(2500)
-        val result = appUpdateRepository.checkUpdate(currentVersionCode = 20)
+        val result = appUpdateRepository.checkUpdate()
         if (result.isSuccess) {
             val info = result.getOrNull()
             if (info != null && info.hasUpdate) {
@@ -328,7 +328,7 @@ fun HomeDashboardScreen(
                         if (isCheckingUpdate) return@ProfileScreen
                         isCheckingUpdate = true
                         coroutineScope.launch {
-                            val res = appUpdateRepository.checkUpdate(currentVersionCode = 20)
+                            val res = appUpdateRepository.checkUpdate()
                             isCheckingUpdate = false
                             if (res.isSuccess) {
                                 val info = res.getOrNull()
@@ -336,7 +336,8 @@ fun HomeDashboardScreen(
                                     updateInfo = info
                                     showUpdateDialog = true
                                 } else {
-                                    android.widget.Toast.makeText(context, "当前已是最新版本 (v2.9.0)", android.widget.Toast.LENGTH_SHORT).show()
+                                    val currentVer = appUpdateRepository.getInstalledVersionName()
+                                    android.widget.Toast.makeText(context, "当前已是最新版本 (v$currentVer)", android.widget.Toast.LENGTH_SHORT).show()
                                 }
                             } else {
                                 android.widget.Toast.makeText(context, "检查更新失败，请检查网络连接", android.widget.Toast.LENGTH_SHORT).show()
@@ -1206,22 +1207,44 @@ private fun CardLoadoutBannerCard(
             Spacer(modifier = Modifier.height(10.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                listOf("11W 机密", "18W 航天", "78W 潮汐监狱").forEach { tag ->
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFFF1F5F9))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = tag,
-                            fontSize = 11.sp,
-                            color = TextPrimaryDark,
-                            fontWeight = FontWeight.Medium
-                        )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf("11W 机密", "18W 航天", "78W 潮汐监狱").forEach { tag ->
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFFF1F5F9))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = tag,
+                                fontSize = 11.sp,
+                                color = TextPrimaryDark,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(width = 58.dp, height = 30.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color(0xFFF8FAFC))
+                        .border(0.5.dp, Color(0xFFE2E8F0), RoundedCornerShape(6.dp))
+                        .padding(2.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AsyncItemImage(
+                        url = GunsmithBuildRepository.getWeaponImageUrl("勇士"),
+                        contentDescription = "勇士冲锋枪",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
+                    )
                 }
             }
         }
@@ -1467,54 +1490,75 @@ private fun KeyRoomCard(
         shape = RoundedCornerShape(14.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color.White)
+                    .border(0.5.dp, Color(0xFFE2E8F0), RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(Color(0xFF1E293B))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = mapName,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TacticalOrange
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = room,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimaryDark
-                    )
-                }
-                Text(
-                    text = est,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFFE65100)
+                Icon(
+                    imageVector = Icons.Default.VpnKey,
+                    contentDescription = null,
+                    tint = TacticalOrange,
+                    modifier = Modifier.size(20.dp)
                 )
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "所需钥匙: $key",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-                color = TextSecondaryGray
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = loot,
-                fontSize = 11.sp,
-                color = Color(0xFF4B5563)
-            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color(0xFF1E293B))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = mapName,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TacticalOrange
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = room,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimaryDark
+                        )
+                    }
+                    Text(
+                        text = est,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFE65100)
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "所需钥匙: $key",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = TextSecondaryGray
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = loot,
+                    fontSize = 11.sp,
+                    color = Color(0xFF4B5563)
+                )
+            }
         }
     }
 }

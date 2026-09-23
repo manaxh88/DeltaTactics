@@ -2,9 +2,12 @@ package com.delta.tactics.data.repository
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Environment
 import androidx.core.content.FileProvider
+import androidx.core.content.pm.PackageInfoCompat
 import com.delta.tactics.domain.model.AppUpdateInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -28,22 +31,79 @@ class AppUpdateRepository(private val context: Context) {
     private val rawManifestUrl = "https://raw.githubusercontent.com/manaxh88/DeltaTactics/main/version.json"
 
     /**
+     * 动态获取当前已安装 App 的版本代号 (versionCode)
+     */
+    fun getInstalledVersionCode(): Int {
+        return try {
+            val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                context.packageManager.getPackageInfo(context.packageName, PackageManager.PackageInfoFlags.of(0))
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.getPackageInfo(context.packageName, 0)
+            }
+            PackageInfoCompat.getLongVersionCode(packageInfo).toInt()
+        } catch (e: Exception) {
+            20
+        }
+    }
+
+    /**
+     * 动态获取当前已安装 App 的版本名称 (versionName)
+     */
+    fun getInstalledVersionName(): String {
+        return try {
+            val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                context.packageManager.getPackageInfo(context.packageName, PackageManager.PackageInfoFlags.of(0))
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.getPackageInfo(context.packageName, 0)
+            }
+            packageInfo.versionName ?: "2.9.0"
+        } catch (e: Exception) {
+            "2.9.0"
+        }
+    }
+
+    /**
+     * 语义化版本号比对：判断 remoteVersion 是否严格大于 currentVersion
+     * 支持例如 "2.9.0" vs "2.8.9" (true), "v2.9.0" vs "2.9.0" (false), "2.8.9" vs "2.9.0" (false)
+     */
+    fun isVersionNewer(remoteVersion: String, currentVersion: String): Boolean {
+        if (remoteVersion.isBlank() || currentVersion.isBlank()) return false
+        val rClean = remoteVersion.trim().removePrefix("v").removePrefix("V").split("-", "_")[0]
+        val cClean = currentVersion.trim().removePrefix("v").removePrefix("V").split("-", "_")[0]
+        val rParts = rClean.split(".").map { it.filter { ch -> ch.isDigit() }.toIntOrNull() ?: 0 }
+        val cParts = cClean.split(".").map { it.filter { ch -> ch.isDigit() }.toIntOrNull() ?: 0 }
+        val maxLen = maxOf(rParts.size, cParts.size)
+        for (i in 0 until maxLen) {
+            val r = rParts.getOrElse(i) { 0 }
+            val c = cParts.getOrElse(i) { 0 }
+            if (r > c) return true
+            if (r < c) return false
+        }
+        return false
+    }
+
+    /**
      * 检查新版本（双通道：优先 GitHub Releases API，优雅降级至 CDN/Raw manifest）
      */
-    suspend fun checkUpdate(currentVersionCode: Int): Result<AppUpdateInfo> = withContext(Dispatchers.IO) {
+    suspend fun checkUpdate(
+        currentVersionCode: Int = getInstalledVersionCode(),
+        currentVersionName: String = getInstalledVersionName()
+    ): Result<AppUpdateInfo> = withContext(Dispatchers.IO) {
         // 1. 尝试从 GitHub Releases API 查询
-        val githubResult = tryFetchFromGithubApi(currentVersionCode)
+        val githubResult = tryFetchFromGithubApi(currentVersionCode, currentVersionName)
         if (githubResult.isSuccess) {
             return@withContext githubResult
         }
 
         // 2. 备选通道：从 CDN / Raw version.json 查询
-        val cdnResult = tryFetchFromManifest(cdnManifestUrl, currentVersionCode)
+        val cdnResult = tryFetchFromManifest(cdnManifestUrl, currentVersionCode, currentVersionName)
         if (cdnResult.isSuccess) {
             return@withContext cdnResult
         }
 
-        val rawResult = tryFetchFromManifest(rawManifestUrl, currentVersionCode)
+        val rawResult = tryFetchFromManifest(rawManifestUrl, currentVersionCode, currentVersionName)
         if (rawResult.isSuccess) {
             return@withContext rawResult
         }
@@ -52,7 +112,7 @@ class AppUpdateRepository(private val context: Context) {
         githubResult
     }
 
-    private fun tryFetchFromGithubApi(currentVersionCode: Int): Result<AppUpdateInfo> {
+    private fun tryFetchFromGithubApi(currentVersionCode: Int, currentVersionName: String): Result<AppUpdateInfo> {
         return try {
             val url = URL(githubApiUrl)
             val conn = (url.openConnection() as HttpURLConnection).apply {
@@ -70,7 +130,7 @@ class AppUpdateRepository(private val context: Context) {
             val body = conn.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
             val json = JSONObject(body)
 
-            val tagName = json.optString("tag_name", "").removePrefix("v").trim()
+            val tagName = json.optString("tag_name", "").removePrefix("v").removePrefix("V").trim()
             val releaseTitle = json.optString("name", "新版本发布")
             val releaseNotes = json.optString("body", "暂无更新说明")
             val browserUrl = json.optString("html_url", "https://github.com/manaxh88/DeltaTactics/releases")
@@ -89,16 +149,22 @@ class AppUpdateRepository(private val context: Context) {
                 }
             }
 
-            // 解析版本号：优先尝试从 body 中提取 versionCode: 16，若无则根据 tag 估算
+            // 解析版本号：优先尝试从 body 中提取显式声明的 versionCode: 16
             val codeRegex = Regex("""versionCode[:=]\s*(\d+)""", RegexOption.IGNORE_CASE)
             val parsedCode = codeRegex.find(releaseNotes)?.groupValues?.get(1)?.toIntOrNull()
-                ?: parseVersionNameToCode(tagName)
 
-            val hasUpdate = parsedCode > currentVersionCode
+            // 升级判定：如果显式声明了同维度的 versionCode 则比对，否则基于语义化版本比对
+            val hasUpdate = if (parsedCode != null && parsedCode > 0) {
+                (parsedCode > currentVersionCode) || isVersionNewer(tagName, currentVersionName)
+            } else {
+                isVersionNewer(tagName, currentVersionName)
+            }
+
+            val finalVersionCode = parsedCode ?: parseVersionNameToCode(tagName)
 
             Result.success(
                 AppUpdateInfo(
-                    versionCode = parsedCode,
+                    versionCode = finalVersionCode,
                     versionName = tagName.ifBlank { "最新版" },
                     title = releaseTitle,
                     changelog = releaseNotes,
@@ -113,7 +179,7 @@ class AppUpdateRepository(private val context: Context) {
         }
     }
 
-    private fun tryFetchFromManifest(manifestUrl: String, currentVersionCode: Int): Result<AppUpdateInfo> {
+    private fun tryFetchFromManifest(manifestUrl: String, currentVersionCode: Int, currentVersionName: String): Result<AppUpdateInfo> {
         return try {
             val url = URL(manifestUrl)
             val conn = (url.openConnection() as HttpURLConnection).apply {
@@ -131,12 +197,14 @@ class AppUpdateRepository(private val context: Context) {
             val json = JSONObject(body)
 
             val targetCode = json.optInt("versionCode", currentVersionCode)
-            val versionName = json.optString("versionName", "2.8.7")
-            val title = json.optString("title", "三角洲助手 版本更新")
+            val versionName = json.optString("versionName", "2.9.0")
+            val title = json.optString("title", "三角洲战术助手 版本更新")
             val changelog = json.optString("changelog", "暂无更新说明")
             val apkUrl = json.optString("apkUrl", "")
             val browserUrl = json.optString("browserUrl", "https://github.com/manaxh88/DeltaTactics/releases/latest")
             val forceUpdate = json.optBoolean("forceUpdate", false)
+
+            val hasUpdate = (targetCode > currentVersionCode) || isVersionNewer(versionName, currentVersionName)
 
             Result.success(
                 AppUpdateInfo(
@@ -147,7 +215,7 @@ class AppUpdateRepository(private val context: Context) {
                     apkUrl = acceleratedApkUrl(apkUrl),
                     browserUrl = browserUrl,
                     forceUpdate = forceUpdate,
-                    hasUpdate = targetCode > currentVersionCode
+                    hasUpdate = hasUpdate
                 )
             )
         } catch (e: Exception) {
