@@ -219,7 +219,7 @@ fun ProfileScreen(
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = "三角洲战术助手 v2.9.3 (房卡图片与战术资讯多级缓存版)",
+                            text = "三角洲战术助手 v2.9.4 (官方改枪码全套校验与秒导版)",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimaryDark
@@ -227,7 +227,7 @@ fun ProfileScreen(
                     }
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "• 房卡与全局装备图片二级磁盘缓存：接入本地文件级持久化缓存与内存 LRU，离线无网秒开，告别重复下载\n• 资讯老新闻永久离线保存：官方公告与图报详情发布后不可变，已读/预热新闻永久持久化至本地磁盘，零等待秒开\n• 资讯列表增量去重合并：开屏优先秒显本地磁盘列表，后台增量合并新发布资讯，离线无缝阅读\n• 冷启动性能优化：开屏静默并行预热钥匙房 80 把卡面图片与头条资讯详情",
+                        text = "• 官方改枪码全套真实校验：全面剔除旧版模拟字符串，替换为三角洲行动《烽火地带》官方剪贴板标准方案码（枪名-烽火地带-21位校验码）\n• 剪贴板自动识别导入：一键复制任意热门配装方案码后，直接打开游戏即可自动弹出「检测到剪贴板方案」秒导入\n• 配装抽屉与首页微卡排版优化：优化改枪码长字符自适应截断与一键复制按钮联动防溢出排版\n• 复制反馈指引增强：Toast 与 Snackbar 贴心引导打开游戏自动识别",
                         fontSize = 12.sp,
                         color = TextSecondaryGray,
                         lineHeight = 20.sp

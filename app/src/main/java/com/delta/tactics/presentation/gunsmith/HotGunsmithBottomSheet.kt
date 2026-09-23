@@ -359,6 +359,7 @@ private fun GunsmithBuildDetailCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
+                    modifier = Modifier.weight(1f).padding(end = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
@@ -373,7 +374,9 @@ private fun GunsmithBuildDetailCard(
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimaryDark,
-                        letterSpacing = 0.5.sp
+                        letterSpacing = 0.5.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 

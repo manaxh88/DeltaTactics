@@ -278,7 +278,7 @@ fun HomeDashboardScreen(
                 HotGunsmithRow(
                     onCardClick = { gun, code ->
                         clipboardManager.setText(AnnotatedString(code))
-                        coroutineScope.launch { snackbarHostState.showSnackbar("已复制 [$gun] 改枪码: $code") }
+                        coroutineScope.launch { snackbarHostState.showSnackbar("已复制 [$gun] 改枪码，打开《三角洲行动》即可自动识别导入") }
                     }
                 )
             }
@@ -428,7 +428,7 @@ fun HomeDashboardScreen(
                 onDismissRequest = { showHotGunsmithSheet = false },
                 onCopyCode = { gun, code ->
                     clipboardManager.setText(AnnotatedString(code))
-                    android.widget.Toast.makeText(context, "已复制 [$gun] 改枪码: $code", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(context, "已复制 [$gun] 改枪码，打开《三角洲行动》即可自动识别导入", android.widget.Toast.LENGTH_SHORT).show()
                 }
             )
         }
