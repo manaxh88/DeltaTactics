@@ -2,57 +2,240 @@ package com.delta.tactics.data.repository
 
 import android.content.Context
 import com.delta.tactics.domain.model.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import java.net.HttpURLConnection
+import java.net.URL
 
 class CardLoadoutRepository(private val context: Context) {
 
-    private var cachedData: CardLoadoutData? = null
+    private val prefs by lazy {
+        context.getSharedPreferences("card_loadout_cache", Context.MODE_PRIVATE)
+    }
 
+    private var cachedData: CardLoadoutData? = null
+    private var lastFetchTime: Long = 0L
+
+    companion object {
+        private const val CACHE_DURATION_MS = 60 * 60 * 1000L // 1 小时自动失效
+        private const val KEY_CACHE_JSON = "cached_kzb_json"
+        private const val KEY_CACHE_TIME = "cached_kzb_time"
+    }
+
+    /**
+     * 同步获取卡战备数据（优先内存 -> 本地持久化缓存 -> Assets）
+     */
     fun getCardLoadoutData(): CardLoadoutData {
         cachedData?.let { return it }
+
+        // 1. 尝试读取本地持久化缓存
+        val savedJson = prefs.getString(KEY_CACHE_JSON, null)
+        val savedTime = prefs.getLong(KEY_CACHE_TIME, 0L)
+        if (!savedJson.isNullOrEmpty()) {
+            val parsed = parseCardLoadoutJson(savedJson)
+            if (parsed.tiers.isNotEmpty()) {
+                cachedData = parsed
+                lastFetchTime = savedTime
+                return parsed
+            }
+        }
+
+        // 2. 降级读取本地 Assets 种子
         val parsed = loadFromAssets()
         cachedData = parsed
         return parsed
     }
 
-    private fun loadFromAssets(): CardLoadoutData {
-        return try {
-            val stringBuilder = java.lang.StringBuilder()
-            context.assets.open("card_loadout.json").use { inputStream ->
-                BufferedReader(InputStreamReader(inputStream, "UTF-8")).use { reader ->
-                    var line = reader.readLine()
-                    while (line != null) {
-                        stringBuilder.append(line)
-                        line = reader.readLine()
-                    }
-                }
+    /**
+     * 判断当前缓存是否已过期（超过1小时或未曾加载过）
+     */
+    fun isCacheExpired(): Boolean {
+        val savedTime = prefs.getLong(KEY_CACHE_TIME, 0L)
+        return (System.currentTimeMillis() - savedTime) >= CACHE_DURATION_MS
+    }
+
+    /**
+     * 在线异步同步最新卡战备方案 (自动根据 1 小时策略或强制刷新)
+     */
+    suspend fun fetchCardLoadoutData(force: Boolean = false): Result<CardLoadoutData> = withContext(Dispatchers.IO) {
+        val now = System.currentTimeMillis()
+        val savedTime = prefs.getLong(KEY_CACHE_TIME, 0L)
+
+        // 若非强制刷新且缓存未过期，直接返回本地缓存
+        if (!force && (now - savedTime) < CACHE_DURATION_MS && cachedData != null && cachedData!!.tiers.isNotEmpty()) {
+            return@withContext Result.success(cachedData!!)
+        }
+
+        try {
+            val url = URL("https://www.shushu.fan/kzb")
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                connectTimeout = 7000
+                readTimeout = 8000
+                requestMethod = "GET"
+                setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                setRequestProperty("Referer", "https://www.shushu.fan/")
             }
 
-            val json = JSONObject(stringBuilder.toString())
-            val updateTime = json.optString("updateTime", "")
-            val tiersArray = json.getJSONArray("tiers")
+            if (conn.responseCode == 200) {
+                val html = conn.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+                val parsed = parseKzbHtml(html)
+                if (parsed != null && parsed.tiers.isNotEmpty()) {
+                    // 持久化到本地缓存
+                    saveToCache(parsed)
+                    cachedData = parsed
+                    lastFetchTime = now
+                    return@withContext Result.success(parsed)
+                }
+            }
+            // 请求不成功或解析失败时，优雅回退到当前现有数据
+            Result.success(getCardLoadoutData())
+        } catch (e: Exception) {
+            e.printStackTrace()
+            // 网络异常回退
+            Result.success(getCardLoadoutData())
+        }
+    }
+
+    /**
+     * 解析 shushu.fan/kzb 服务端流数据
+     */
+    private fun parseKzbHtml(html: String): CardLoadoutData? {
+        return try {
+            val marker = "{\\\"allData\\\":"
+            val startIdx = html.indexOf(marker)
+            if (startIdx == -1) return null
+
+            // 查找结尾: }]\\n"]
+            val endPattern = "}]\\n\"]"
+            var endIdx = html.indexOf(endPattern, startIdx)
+            if (endIdx == -1) {
+                // 兜底找单个 }
+                endIdx = html.indexOf("}", startIdx)
+            }
+            if (endIdx == -1) return null
+
+            val rawSub = html.substring(startIdx, endIdx + 1)
+            val unescaped = rawSub.replace("\\\"", "\"").replace("\\\\", "\\")
+
+            val json = JSONObject(unescaped)
+            val updateTime = json.optString("time", "")
+            val allDataArray = json.optJSONArray("allData") ?: return null
+
+            val tierConfigs = listOf(
+                Triple("11W", "大坝、长弓—机密", 110000L),
+                Triple("18W", "航天、巴克什—机密", 180000L),
+                Triple("55W", "巴克什—绝密", 550000L),
+                Triple("60W", "航天基地—绝密", 600000L),
+                Triple("78W", "潮汐监狱—绝密", 780000L)
+            )
+
             val tiersList = mutableListOf<CardLoadoutTier>()
 
-            for (t in 0 until tiersArray.length()) {
-                val tierJson = tiersArray.getJSONObject(t)
-                val id = tierJson.getString("id")
-                val name = tierJson.getString("name")
-                val maps = tierJson.getString("maps")
-                val thresholdValue = tierJson.optLong("thresholdValue", 0L)
-
-                val plansArray = tierJson.getJSONArray("plans")
+            for (t in 0 until minOf(allDataArray.length(), tierConfigs.size)) {
+                val plansArray = allDataArray.getJSONArray(t)
+                val config = tierConfigs[t]
                 val plansList = mutableListOf<CardLoadoutPlan>()
 
                 for (p in 0 until plansArray.length()) {
                     val planJson = plansArray.getJSONObject(p)
-                    val planName = planJson.getString("name")
-                    val price = planJson.getLong("price")
-                    val jz = planJson.getLong("jz")
-                    val cz = planJson.getLong("cz")
+                    val planName = planJson.optString("name", "推荐方案")
+                    val price = planJson.optLong("price", 0L)
+                    val jz = planJson.optLong("jz", 0L)
+                    val cz = planJson.optLong("cz", 0L)
 
-                    val dataArray = planJson.getJSONArray("data")
+                    val dataArray = planJson.optJSONArray("data") ?: JSONArray()
+                    val itemsList = mutableListOf<CardLoadoutItem>()
+
+                    for (d in 0 until dataArray.length()) {
+                        val itemJson = dataArray.getJSONObject(d)
+                        itemsList.add(
+                            CardLoadoutItem(
+                                id = itemJson.optLong("id", 0L),
+                                name = itemJson.optString("name", ""),
+                                grade = itemJson.optInt("grade", 1),
+                                price = itemJson.optLong("price", 0L),
+                                jz = itemJson.optLong("jz", 0L),
+                                type = itemJson.optString("type", ""),
+                                pic = itemJson.optString("pic", ""),
+                                bl = itemJson.optInt("bl", 0),
+                                jiazhang = itemJson.optInt("jiazhang", 0)
+                            )
+                        )
+                    }
+
+                    plansList.add(
+                        CardLoadoutPlan(
+                            name = planName,
+                            price = price,
+                            jz = jz,
+                            cz = cz,
+                            data = itemsList
+                        )
+                    )
+                }
+
+                tiersList.add(
+                    CardLoadoutTier(
+                        id = config.first,
+                        name = config.first,
+                        maps = config.second,
+                        thresholdValue = config.third,
+                        plans = plansList
+                    )
+                )
+            }
+
+            CardLoadoutData(
+                updateTime = updateTime,
+                tiers = tiersList
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    private fun loadFromAssets(): CardLoadoutData {
+        return try {
+            val content = context.assets.open("card_loadout.json").use { inputStream ->
+                BufferedReader(InputStreamReader(inputStream, "UTF-8")).readText()
+            }
+            parseCardLoadoutJson(content)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            CardLoadoutData()
+        }
+    }
+
+    fun parseCardLoadoutJson(jsonString: String): CardLoadoutData {
+        return try {
+            val json = JSONObject(jsonString)
+            val updateTime = json.optString("updateTime", "")
+            val tiersArray = json.optJSONArray("tiers") ?: return CardLoadoutData()
+            val tiersList = mutableListOf<CardLoadoutTier>()
+
+            for (t in 0 until tiersArray.length()) {
+                val tierJson = tiersArray.getJSONObject(t)
+                val id = tierJson.optString("id", "")
+                val name = tierJson.optString("name", "")
+                val maps = tierJson.optString("maps", "")
+                val thresholdValue = tierJson.optLong("thresholdValue", 0L)
+
+                val plansArray = tierJson.optJSONArray("plans") ?: JSONArray()
+                val plansList = mutableListOf<CardLoadoutPlan>()
+
+                for (p in 0 until plansArray.length()) {
+                    val planJson = plansArray.getJSONObject(p)
+                    val planName = planJson.optString("name", "")
+                    val price = planJson.optLong("price", 0L)
+                    val jz = planJson.optLong("jz", 0L)
+                    val cz = planJson.optLong("cz", 0L)
+
+                    val dataArray = planJson.optJSONArray("data") ?: JSONArray()
                     val itemsList = mutableListOf<CardLoadoutItem>()
 
                     for (d in 0 until dataArray.length()) {
@@ -101,6 +284,58 @@ class CardLoadoutRepository(private val context: Context) {
         } catch (e: Exception) {
             e.printStackTrace()
             CardLoadoutData()
+        }
+    }
+
+    private fun saveToCache(data: CardLoadoutData) {
+        try {
+            val root = JSONObject()
+            root.put("updateTime", data.updateTime)
+            val tiersArray = JSONArray()
+
+            for (t in data.tiers) {
+                val tierObj = JSONObject()
+                tierObj.put("id", t.id)
+                tierObj.put("name", t.name)
+                tierObj.put("maps", t.maps)
+                tierObj.put("thresholdValue", t.thresholdValue)
+
+                val plansArray = JSONArray()
+                for (p in t.plans) {
+                    val planObj = JSONObject()
+                    planObj.put("name", p.name)
+                    planObj.put("price", p.price)
+                    planObj.put("jz", p.jz)
+                    planObj.put("cz", p.cz)
+
+                    val dataArray = JSONArray()
+                    for (item in p.data) {
+                        val itemObj = JSONObject()
+                        itemObj.put("id", item.id)
+                        itemObj.put("name", item.name)
+                        itemObj.put("grade", item.grade)
+                        itemObj.put("price", item.price)
+                        itemObj.put("jz", item.jz)
+                        itemObj.put("type", item.type)
+                        itemObj.put("pic", item.pic)
+                        itemObj.put("bl", item.bl)
+                        itemObj.put("jiazhang", item.jiazhang)
+                        dataArray.put(itemObj)
+                    }
+                    planObj.put("data", dataArray)
+                    plansArray.put(planObj)
+                }
+                tierObj.put("plans", plansArray)
+                tiersArray.put(tierObj)
+            }
+            root.put("tiers", tiersArray)
+
+            prefs.edit()
+                .putString(KEY_CACHE_JSON, root.toString())
+                .putLong(KEY_CACHE_TIME, System.currentTimeMillis())
+                .apply()
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 }

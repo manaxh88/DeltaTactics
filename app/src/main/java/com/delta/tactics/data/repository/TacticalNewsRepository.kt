@@ -13,6 +13,8 @@ class TacticalNewsRepository {
     private val baseUrl = "https://www.shushu.fan/api/articles"
     private val detailCache = mutableMapOf<Long, TacticalNewsDetail>()
     private var cachedNewsList: List<TacticalNewsItem>? = null
+    private var lastFetchTime: Long = 0L
+    private val cacheDurationMs = 60 * 60 * 1000L // 1 小时
 
     /**
      * 规范化图片与资源 URL (例如补齐 //static.gametalk.qq.com 前的 https:)
@@ -27,9 +29,13 @@ class TacticalNewsRepository {
     }
 
     /**
-     * 分页拉取战术资讯列表
+     * 分页拉取战术资讯列表 (支持 1 小时缓存与跨天自动刷新)
      */
-    suspend fun fetchArticles(page: Int = 1, limit: Int = 20): Result<List<TacticalNewsItem>> = withContext(Dispatchers.IO) {
+    suspend fun fetchArticles(page: Int = 1, limit: Int = 20, force: Boolean = false): Result<List<TacticalNewsItem>> = withContext(Dispatchers.IO) {
+        if (!force && page == 1 && cachedNewsList != null && (System.currentTimeMillis() - lastFetchTime < cacheDurationMs)) {
+            return@withContext Result.success(cachedNewsList!!)
+        }
+
         try {
             val endpoint = "$baseUrl?page=$page&limit=$limit"
             val conn = (URL(endpoint).openConnection() as HttpURLConnection).apply {
@@ -55,6 +61,7 @@ class TacticalNewsRepository {
 
             if (page == 1) {
                 cachedNewsList = parsedList
+                lastFetchTime = System.currentTimeMillis()
             }
 
             Result.success(parsedList)

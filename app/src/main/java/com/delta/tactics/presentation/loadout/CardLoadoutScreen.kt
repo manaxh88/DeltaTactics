@@ -63,6 +63,7 @@ fun CardLoadoutScreen(
     }
 
     val loadoutData by viewModel.loadoutData.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
     val selectedTierIndex by viewModel.selectedTierIndex.collectAsState()
     val selectedPlanType by viewModel.selectedPlanType.collectAsState()
 
@@ -86,6 +87,8 @@ fun CardLoadoutScreen(
                 title = "鼠鼠卡战备",
                 subtitle = "低成本进图 · 假账套利速查",
                 updateTime = loadoutData.updateTime,
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.refresh(force = true) },
                 onBack = onBack
             )
         }
@@ -142,6 +145,8 @@ private fun LoadoutTopBar(
     title: String,
     subtitle: String,
     updateTime: String,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
     onBack: () -> Unit
 ) {
     Row(
@@ -189,16 +194,38 @@ private fun LoadoutTopBar(
             }
         }
 
-        // 更新时间徽章
-        if (updateTime.isNotBlank()) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFFF1F5F9))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            ) {
+        // 更新时间与实时刷新按钮
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xFFF1F5F9))
+                .clickable { onRefresh() }
+                .padding(horizontal = 8.dp, vertical = 5.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (isRefreshing) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(10.dp),
+                    strokeWidth = 1.5.dp,
+                    color = TacticalOrange
+                )
+                Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "更新 $updateTime",
+                    text = "正在同步...",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = TacticalOrange
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "刷新",
+                    tint = TextSecondaryGray,
+                    modifier = Modifier.size(12.dp)
+                )
+                Spacer(modifier = Modifier.width(3.dp))
+                Text(
+                    text = if (updateTime.isNotBlank()) "更新 $updateTime" else "点击刷新",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Medium,
                     color = TextSecondaryGray

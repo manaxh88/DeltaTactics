@@ -63,7 +63,7 @@ fun CraftProfitBottomSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "特勤处制造利润排行",
                         style = MaterialTheme.typography.titleLarge,
@@ -78,39 +78,60 @@ fun CraftProfitBottomSheet(
                     )
                 }
 
-                // 排序切换药丸
                 Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Color(0xFFF1F5F9))
-                        .padding(2.dp)
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Box(
+                    // 排序切换药丸
+                    Row(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(if (!sortByHourly) PillNavBackground else Color.Transparent)
-                            .clickable { sortByHourly = false }
-                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Color(0xFFF1F5F9))
+                            .padding(2.dp)
                     ) {
-                        Text(
-                            text = "总利润",
-                            fontSize = 11.sp,
-                            fontWeight = if (!sortByHourly) FontWeight.Bold else FontWeight.Normal,
-                            color = if (!sortByHourly) Color.White else TextSecondaryGray
-                        )
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(if (!sortByHourly) PillNavBackground else Color.Transparent)
+                                .clickable { sortByHourly = false }
+                                .padding(horizontal = 9.dp, vertical = 5.dp)
+                        ) {
+                            Text(
+                                text = "总利润",
+                                fontSize = 11.sp,
+                                fontWeight = if (!sortByHourly) FontWeight.Bold else FontWeight.Normal,
+                                color = if (!sortByHourly) Color.White else TextSecondaryGray
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(if (sortByHourly) PillNavBackground else Color.Transparent)
+                                .clickable { sortByHourly = true }
+                                .padding(horizontal = 9.dp, vertical = 5.dp)
+                        ) {
+                            Text(
+                                text = "时薪/h",
+                                fontSize = 11.sp,
+                                fontWeight = if (sortByHourly) FontWeight.Bold else FontWeight.Normal,
+                                color = if (sortByHourly) Color.White else TextSecondaryGray
+                            )
+                        }
                     }
-                    Box(
+
+                    // 右上角圆形关闭按钮
+                    IconButton(
+                        onClick = onDismissRequest,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(if (sortByHourly) PillNavBackground else Color.Transparent)
-                            .clickable { sortByHourly = true }
-                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFF1F5F9))
                     ) {
-                        Text(
-                            text = "时薪/h",
-                            fontSize = 11.sp,
-                            fontWeight = if (sortByHourly) FontWeight.Bold else FontWeight.Normal,
-                            color = if (sortByHourly) Color.White else TextSecondaryGray
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "关闭",
+                            tint = TextPrimaryDark,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }

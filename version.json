@@ -1,10 +1,10 @@
 {
-  "versionCode": 21,
-  "versionName": "2.9.1",
+  "versionCode": 22,
+  "versionName": "2.9.2",
   "releaseDate": "2026-09-23",
-  "title": "三角洲战术助手 v2.9.1 (改枪码与资讯滑动体验优化版)",
-  "changelog": "• 修复战术资讯详情文章与官方图报无法向下滑动浏览的问题 (引入原生嵌套滑动 WebView)\n• 修复资讯详情在正文顶部向下滑动可丝滑下拉收起抽屉\n• 热门改枪配装增加右上角一键关闭按钮与全分类多武器丰富配置\n• 优化改枪码抽屉手势响应，支持流畅向下浏览与下拉退出\n• 增强网络图片与富文本自适应渲染手感",
-  "apkUrl": "https://ghfast.top/https://github.com/manaxh88/DeltaTactics/releases/download/v2.9.1/DeltaTactics-v2.9.1.apk",
+  "title": "三角洲战术助手 v2.9.2 (数据动态更新与钥匙房重构版)",
+  "changelog": "• 解决卡战备数据定格在21号的问题：接入官方实时数据源，实现 1 小时自动更新与开屏静默同步\n• 卡战备顶栏增加实时同步状态动画与手动点击刷新按钮\n• 全面重构钥匙房板块：全量接入 6 大地图 80 把真实钥匙市价、涨跌幅、星级与官方图标\n• 钥匙房增加六大地图分类筛选栏（大坝/航天/长弓/巴克什/监狱/AZ3）与快捷搜索\n• 为制造利润、子弹收益、钥匙房等所有底部弹窗统一新增右上角关闭按钮",
+  "apkUrl": "https://ghfast.top/https://github.com/manaxh88/DeltaTactics/releases/download/v2.9.2/DeltaTactics-v2.9.2.apk",
   "browserUrl": "https://github.com/manaxh88/DeltaTactics/releases/latest",
   "forceUpdate": false
 }

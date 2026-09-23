@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.navigationBars
@@ -120,6 +121,14 @@ import com.delta.tactics.domain.model.GunsmithBuildRepository
 import com.delta.tactics.presentation.cipher.CipherRoomViewModel
 import com.delta.tactics.presentation.common.AsyncItemImage
 import com.delta.tactics.presentation.gunsmith.HotGunsmithBottomSheet
+import com.delta.tactics.domain.model.KeyRoomCardItem
+import com.delta.tactics.data.repository.KeyRoomRepository
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.LocalTextStyle
+import android.widget.Toast
+import android.content.Context
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1408,13 +1417,56 @@ private fun WeaponCompareCard(
     }
 }
 
-/** 高价值钥匙房速查抽屉 */
+/** 全地图高价值钥匙房速查抽屉 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun KeyRoomsBottomSheet(
     sheetState: SheetState,
     onDismissRequest: () -> Unit
 ) {
+    val context = LocalContext.current
+    val repository = remember { KeyRoomRepository(context) }
+    var selectedMapId by remember { mutableIntStateOf(0) }
+    var searchQuery by remember { mutableStateOf("") }
+    var allKeys by remember { mutableStateOf(repository.getAllKeys()) }
+    val coroutineScope = rememberCoroutineScope()
+
+    // 初始启动尝试静默更新钥匙行情
+    LaunchedEffect(Unit) {
+        coroutineScope.launch {
+            val res = repository.syncKeyRoomsFromWeb(force = false)
+            res.onSuccess {
+                if (it.isNotEmpty()) {
+                    allKeys = it
+                }
+            }
+        }
+    }
+
+    val filteredKeys = remember(allKeys, selectedMapId, searchQuery) {
+        allKeys.filter { item ->
+            val matchMap = (selectedMapId == 0 || item.mapId == selectedMapId)
+            val matchQuery = if (searchQuery.isBlank()) true else {
+                item.name.contains(searchQuery, ignoreCase = true) ||
+                        item.mapName.contains(searchQuery, ignoreCase = true) ||
+                        item.lootDesc.contains(searchQuery, ignoreCase = true)
+            }
+            matchMap && matchQuery
+        }
+    }
+
+    val mapOptions = remember(allKeys) {
+        listOf(
+            0 to "全部 (${allKeys.size})",
+            1 to "零号大坝 (${allKeys.count { it.mapId == 1 }})",
+            2 to "航天基地 (${allKeys.count { it.mapId == 2 }})",
+            3 to "长弓溪谷 (${allKeys.count { it.mapId == 3 }})",
+            4 to "巴克什 (${allKeys.count { it.mapId == 4 }})",
+            5 to "潮汐监狱 (${allKeys.count { it.mapId == 5 }})",
+            6 to "AZ3核电 (${allKeys.count { it.mapId == 6 }})"
+        )
+    }
+
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
@@ -1425,89 +1477,228 @@ private fun KeyRoomsBottomSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
-                .padding(bottom = 36.dp)
+                .padding(bottom = 28.dp)
         ) {
-            Text(
-                text = "高价值钥匙房速查",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimaryDark
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = "各图核心钥匙房位置、钥匙市价与出金期望估值",
-                style = MaterialTheme.typography.bodySmall,
-                color = TextSecondaryGray
-            )
+            // 顶栏：标题与关闭按钮
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "全地图钥匙房速查",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimaryDark
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color(0xFFFEF3C7))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "80把真机钥匙",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFD97706)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "六大战术地图 · 实时交易行估值与核心出金预估",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondaryGray
+                    )
+                }
 
-            Spacer(modifier = Modifier.height(16.dp))
+                // 右上角圆形关闭按钮
+                IconButton(
+                    onClick = onDismissRequest,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFF1F5F9))
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "关闭",
+                        tint = TextPrimaryDark,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
 
-            KeyRoomCard(
-                mapName = "航天基地",
-                room = "核心区 • 离心机实验室",
-                key = "离心机金卡",
-                est = "期望 180W+",
-                loot = "核心产出: 绝密航天数据、红卡、曼德尔砖"
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            KeyRoomCard(
-                mapName = "零号大坝",
-                room = "行政主楼 • 2F 大办公室",
-                key = "主楼钥匙",
-                est = "期望 120W+",
-                loot = "核心产出: 绝密蓝图、军工电脑箱、大金条"
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            KeyRoomCard(
-                mapName = "长弓溪谷",
-                room = "雷达站 • 指挥中心密室",
-                key = "雷达钥匙",
-                est = "期望 95W+",
-                loot = "核心产出: 军用热成像仪、CPU芯片、高级战术装备"
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            KeyRoomCard(
-                mapName = "巴克什",
-                room = "集市暗室 • 贵重品保密室",
-                key = "集市钥匙",
-                est = "期望 70W+",
-                loot = "核心产出: 贵重金条、保密终端箱"
-            )
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 地图分类滑动栏
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                mapOptions.forEach { (mid, label) ->
+                    val isSelected = (selectedMapId == mid)
+                    Surface(
+                        onClick = { selectedMapId = mid },
+                        shape = RoundedCornerShape(20.dp),
+                        color = if (isSelected) TacticalDark else Color(0xFFF1F5F9),
+                        border = if (isSelected) null else BorderStroke(0.5.dp, Color(0xFFE2E8F0))
+                    ) {
+                        Text(
+                            text = label,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            fontSize = 12.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isSelected) Color.White else TextSecondaryGray
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 搜索过滤框
+            Surface(
+                color = Color(0xFFF8FAFC),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        tint = TextSecondaryGray,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    BasicTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        textStyle = LocalTextStyle.current.copy(
+                            fontSize = 13.sp,
+                            color = TextPrimaryDark
+                        ),
+                        decorationBox = { innerTextField ->
+                            if (searchQuery.isEmpty()) {
+                                Text(
+                                    text = "搜索钥匙名称或掉落（如: 总裁、总控、蓝图）",
+                                    fontSize = 12.sp,
+                                    color = TextTertiaryLight
+                                )
+                            }
+                            innerTextField()
+                        }
+                    )
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(
+                            onClick = { searchQuery = "" },
+                            modifier = Modifier.size(20.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "清除",
+                                tint = TextSecondaryGray,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 钥匙卡列表
+            if (filteredKeys.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "未找到相关钥匙，请尝试其他关键词",
+                        fontSize = 13.sp,
+                        color = TextSecondaryGray
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 500.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(filteredKeys, key = { it.id + it.name }) { keyItem ->
+                        RealKeyRoomCard(
+                            keyItem = keyItem,
+                            onCopy = {
+                                val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                val clip = android.content.ClipData.newPlainText("KeyName", keyItem.name)
+                                cm.setPrimaryClip(clip)
+                                Toast.makeText(context, "已复制钥匙名称: ${keyItem.name}", Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun KeyRoomCard(
-    mapName: String,
-    room: String,
-    key: String,
-    est: String,
-    loot: String
+private fun RealKeyRoomCard(
+    keyItem: KeyRoomCardItem,
+    onCopy: () -> Unit
 ) {
     Surface(
-        color = IconCircleBg,
+        color = Color(0xFFF8FAFC),
         shape = RoundedCornerShape(14.dp),
-        modifier = Modifier.fillMaxWidth()
+        border = BorderStroke(0.8.dp, Color(0xFFE2E8F0)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCopy() }
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // 真实钥匙高清图
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(46.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .background(Color.White)
                     .border(0.5.dp, Color(0xFFE2E8F0), RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.VpnKey,
-                    contentDescription = null,
-                    tint = TacticalOrange,
-                    modifier = Modifier.size(20.dp)
-                )
+                if (keyItem.imgUrl.isNotBlank()) {
+                    AsyncItemImage(
+                        url = keyItem.imgUrl,
+                        contentDescription = keyItem.name,
+                        modifier = Modifier.size(40.dp)
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.VpnKey,
+                        contentDescription = null,
+                        tint = TacticalOrange,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -1516,7 +1707,11 @@ private fun KeyRoomCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f, fill = false)
+                    ) {
+                        // 地图小标
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
@@ -1524,40 +1719,90 @@ private fun KeyRoomCard(
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
                             Text(
-                                text = mapName,
-                                fontSize = 11.sp,
+                                text = keyItem.mapName,
+                                fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = TacticalOrange
                             )
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        // 等级标签
+                        val gradeColor = when (keyItem.grade) {
+                            6 -> Color(0xFFE65100) // 金
+                            5 -> Color(0xFF7C3AED) // 紫
+                            4 -> Color(0xFF0284C7) // 蓝
+                            else -> Color(0xFF10B981) // 绿
+                        }
+                        val gradeBg = when (keyItem.grade) {
+                            6 -> Color(0xFFFFFBEB)
+                            5 -> Color(0xFFF5F3FF)
+                            4 -> Color(0xFFF0F9FF)
+                            else -> Color(0xFFECFDF5)
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(gradeBg)
+                                .padding(horizontal = 5.dp, vertical = 1.dp)
+                        ) {
+                            Text(
+                                text = "${keyItem.grade}星",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = gradeColor
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = room,
+                            text = keyItem.name,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextPrimaryDark
+                            color = TextPrimaryDark,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
+
+                    Spacer(modifier = Modifier.width(6.dp))
+                    // 估值价格
                     Text(
-                        text = est,
-                        fontSize = 12.sp,
+                        text = keyItem.formattedPrice,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFFE65100)
                     )
                 }
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "所需钥匙: $key",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = TextSecondaryGray
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = loot,
-                    fontSize = 11.sp,
-                    color = Color(0xFF4B5563)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = keyItem.lootDesc,
+                        fontSize = 11.sp,
+                        color = Color(0xFF4B5563),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    if (keyItem.changeToday.isNotBlank()) {
+                        val isUp = keyItem.changeToday.startsWith("+")
+                        val isDown = keyItem.changeToday.startsWith("-")
+                        val chgColor = when {
+                            isUp -> Color(0xFFDC2626)
+                            isDown -> Color(0xFF16A34A)
+                            else -> TextSecondaryGray
+                        }
+                        Text(
+                            text = "日涨跌 ${keyItem.changeToday}",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = chgColor
+                        )
+                    }
+                }
             }
         }
     }

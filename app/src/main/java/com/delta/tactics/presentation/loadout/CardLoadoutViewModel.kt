@@ -22,6 +22,9 @@ class CardLoadoutViewModel(application: Application) : AndroidViewModel(applicat
     private val _loadoutData = MutableStateFlow(CardLoadoutData())
     val loadoutData: StateFlow<CardLoadoutData> = _loadoutData.asStateFlow()
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
     private val _selectedTierIndex = MutableStateFlow(0)
     val selectedTierIndex: StateFlow<Int> = _selectedTierIndex.asStateFlow()
 
@@ -33,13 +36,33 @@ class CardLoadoutViewModel(application: Application) : AndroidViewModel(applicat
     val calculatorCurrentValue: StateFlow<String> = _calculatorCurrentValue.asStateFlow()
 
     init {
-        loadData()
+        // 先快速加载本地已有数据（秒开）
+        val local = repository.getCardLoadoutData()
+        _loadoutData.value = local
+
+        // 如果缓存超过 1 小时或首次启动，静默发起网络拉取
+        if (repository.isCacheExpired() || local.tiers.isEmpty()) {
+            refresh(force = false)
+        }
     }
 
-    fun loadData() {
+    /**
+     * 刷新卡战备数据
+     * @param force 是否强制跳过 1 小时缓存限制向远程服务器发起拉取
+     */
+    fun refresh(force: Boolean = true) {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            val data = repository.getCardLoadoutData()
-            _loadoutData.value = data
+            _isRefreshing.value = true
+            try {
+                val res = repository.fetchCardLoadoutData(force = force)
+                res.onSuccess { data ->
+                    if (data.tiers.isNotEmpty()) {
+                        _loadoutData.value = data
+                    }
+                }
+            } finally {
+                _isRefreshing.value = false
+            }
         }
     }
 
