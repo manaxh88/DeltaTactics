@@ -121,6 +121,7 @@ import com.delta.tactics.domain.model.GunsmithBuildRepository
 import com.delta.tactics.presentation.cipher.CipherRoomViewModel
 import com.delta.tactics.presentation.common.AsyncItemImage
 import com.delta.tactics.presentation.gunsmith.HotGunsmithBottomSheet
+import com.delta.tactics.data.repository.GunsmithRepository
 import com.delta.tactics.domain.model.KeyRoomCardItem
 import com.delta.tactics.data.repository.KeyRoomRepository
 import androidx.compose.foundation.BorderStroke
@@ -718,6 +719,17 @@ private fun SectionHeader(
 private fun HotGunsmithRow(
     onCardClick: (gun: String, code: String) -> Unit
 ) {
+    val context = LocalContext.current
+    val repository = remember { GunsmithRepository(context) }
+    var builds by remember { mutableStateOf(repository.getBuilds().take(20)) }
+
+    LaunchedEffect(Unit) {
+        val updated = repository.fetchOfficialBuilds(force = false)
+        if (updated.isNotEmpty()) {
+            builds = updated.take(20)
+        }
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -725,14 +737,16 @@ private fun HotGunsmithRow(
             .padding(horizontal = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        GunsmithBuildRepository.POPULAR_BUILDS.forEach { build ->
+        builds.forEach { build ->
             GunBuildCard(
                 gunName = build.gunName,
+                roleName = build.roleName,
+                author = build.author,
                 specs = build.specs,
                 gunTag = build.gunName.split(" ").firstOrNull() ?: "",
                 buildCode = build.buildCode,
-                imageUrl = build.imageUrl,
-                modifier = Modifier.width(176.dp),
+                imageUrl = build.imageUrl.ifBlank { build.gunBasePic },
+                modifier = Modifier.width(184.dp),
                 onClick = onCardClick
             )
         }
@@ -742,6 +756,8 @@ private fun HotGunsmithRow(
 @Composable
 private fun GunBuildCard(
     gunName: String,
+    roleName: String = "",
+    author: String = "",
     specs: String,
     gunTag: String,
     buildCode: String,
@@ -756,11 +772,11 @@ private fun GunBuildCard(
         shape = RoundedCornerShape(18.dp)
     ) {
         Column(modifier = Modifier.padding(10.dp)) {
-            // 枪械官方透底高清渲染图卡片
+            // 枪械官方透底高清渲染图卡片（展示真实满改外观）
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(100.dp)
+                    .height(104.dp)
                     .clip(RoundedCornerShape(14.dp))
                     .background(Color(0xFFF8FAFC)),
                 contentAlignment = Alignment.Center
@@ -771,7 +787,7 @@ private fun GunBuildCard(
                         contentDescription = gunName,
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(8.dp),
+                            .padding(horizontal = 6.dp, vertical = 4.dp),
                         contentScale = ContentScale.Fit,
                         fallback = {
                             Text(
@@ -791,7 +807,7 @@ private fun GunBuildCard(
                     )
                 }
 
-                // 左上角枪械Tag微标
+                // 左上角枪械Tag徽标
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopStart)
@@ -808,9 +824,30 @@ private fun GunBuildCard(
                         color = TextSecondaryGray
                     )
                 }
+
+                // 右下角创作者徽章
+                if (author.isNotBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(5.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Color(0xFF1E293B).copy(alpha = 0.85f))
+                            .padding(horizontal = 5.dp, vertical = 1.dp)
+                    ) {
+                        Text(
+                            text = "👑 $author",
+                            fontSize = 8.5.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFFFFD700),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = gunName,
                 fontSize = 14.sp,
@@ -819,10 +856,21 @@ private fun GunBuildCard(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Spacer(modifier = Modifier.height(3.dp))
+            if (roleName.isNotBlank()) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = roleName,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFFFF5500),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = specs,
-                fontSize = 11.sp,
+                fontSize = 10.5.sp,
                 color = TextSecondaryGray,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis

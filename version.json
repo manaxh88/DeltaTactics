@@ -1,10 +1,10 @@
 {
-  "versionCode": 24,
-  "versionName": "2.9.4",
+  "versionCode": 25,
+  "versionName": "2.9.5",
   "releaseDate": "2026-09-23",
-  "title": "三角洲战术助手 v2.9.4 (官方改枪码全套校验与秒导版)",
-  "changelog": "• 官方改枪码全套真实校验：全面剔除旧版模拟字符串，替换为三角洲行动《烽火地带》官方剪贴板标准方案码（枪名-烽火地带-21位校验码）\n• 剪贴板自动识别导入：一键复制任意热门配装方案码后，直接打开游戏即可自动弹出「检测到剪贴板方案」秒导入\n• 配装抽屉与首页微卡排版优化：优化改枪码长字符自适应截断与一键复制按钮联动防溢出排版\n• 复制反馈指引增强：Toast 与 Snackbar 贴心引导打开游戏自动识别",
-  "apkUrl": "https://ghfast.top/https://github.com/manaxh88/DeltaTactics/releases/download/v2.9.4/DeltaTactics-v2.9.4.apk",
+  "title": "三角洲战术助手 v2.9.5 (官方满改外观大图与全枪械方案库)",
+  "changelog": "• 官方真实满改 3D 外观图全量接入：直连腾讯官方微社区渲染 CDN，完整呈现装配消音管、高倍/全息瞄具、倾角握把与特种枪托等真实满改外观\n• 全量 71 种武器精选方案底包（188 套方案）：包含职业战队（eStar/JDG/LGD等）与大神实战调校方案、合法改枪码与预估造价，离线免网秒开\n• 三级缓存与在线同步架构：GunsmithRepository 支持开屏预取与官方方案增量刷新\n• 改枪抽屉交互全面升级：新增枪械/选手/配件即时搜索框、金色创作者徽章、造价标签与分类快速切换\n• 首页热门配装横向轮播卡片升级：直接呈现真实满改效果与创作者认证",
+  "apkUrl": "https://ghfast.top/https://github.com/manaxh88/DeltaTactics/releases/download/v2.9.5/DeltaTactics-v2.9.5.apk",
   "browserUrl": "https://github.com/manaxh88/DeltaTactics/releases/latest",
   "forceUpdate": false
 }

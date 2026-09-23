@@ -19,6 +19,7 @@ import com.delta.tactics.core.ui.theme.DeltaTacticsTheme
 import com.delta.tactics.data.repository.CardLoadoutRepository
 import com.delta.tactics.data.repository.KeyRoomRepository
 import com.delta.tactics.data.repository.TacticalNewsRepository
+import com.delta.tactics.data.repository.GunsmithRepository
 import com.delta.tactics.presentation.cipher.CipherRoomViewModel
 import com.delta.tactics.presentation.home.HomeDashboardScreen
 
@@ -52,6 +53,7 @@ class MainActivity : ComponentActivity() {
                 keyRepo.syncKeyRoomsFromWeb(force = false)
                 keyRepo.preloadKeyRoomImages(applicationContext)
                 TacticalNewsRepository(applicationContext).fetchArticles(page = 1, force = false)
+                GunsmithRepository(applicationContext).fetchOfficialBuilds(force = false)
             } catch (e: Exception) {
                 e.printStackTrace()
             }

@@ -10,11 +10,14 @@ data class GunsmithBuild(
     val category: String,               // "突击步枪", "冲锋枪", "狙击步枪", "射手步枪"
     val caliber: String,                // 口径规格（如 "5.56×45mm"）
     val buildCode: String,              // 官方游戏改枪码
-    val imageUrl: String,               // 官方透明高清武器图
+    val imageUrl: String,               // 官方透明高清武器图（真实满改外观渲染图）
     val specs: String,                  // 核心参数（如 "后坐力 -18% • 射程 42m"）
     val description: String,            // 方案设计初衷与实战打法
     val pros: List<String>,             // 优势标签
-    val keyAccessories: List<String>    // 关键核心配件推荐清单
+    val keyAccessories: List<String>,   // 关键核心配件推荐清单
+    val author: String = "官方精选",     // 创作者/职业选手昵称
+    val price: Long = 0L,               // 预估配件与整枪造价（哈夫币）
+    val gunBasePic: String = ""         // 基础裸枪立绘
 )
 
 /**

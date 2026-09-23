@@ -12,10 +12,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,13 +28,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.delta.tactics.data.repository.GunsmithRepository
 import com.delta.tactics.domain.model.GunsmithBuild
-import com.delta.tactics.domain.model.GunsmithBuildRepository
 import com.delta.tactics.presentation.common.AsyncItemImage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -45,6 +51,7 @@ private val AccentGreen = Color(0xFF10B981)
 private val AccentGreenSoft = Color(0xFFECFDF5)
 private val TacticalOrange = Color(0xFFFF5500)
 private val GunCardBg = Color(0xFFF8FAFC)
+private val GoldenCrown = Color(0xFFFFB800)
 
 /**
  * 热门改枪配装 (抄作业) 抽屉
@@ -56,14 +63,37 @@ fun HotGunsmithBottomSheet(
     onDismissRequest: () -> Unit,
     onCopyCode: (gun: String, code: String) -> Unit
 ) {
+    val context = LocalContext.current
+    val repository = remember { GunsmithRepository(context) }
+    var allBuilds by remember { mutableStateOf(repository.getBuilds()) }
     var selectedCategory by remember { mutableStateOf("全部") }
-    val categories = remember { listOf("全部", "突击步枪", "冲锋枪", "狙击步枪", "射手步枪", "轻机枪/霰弹") }
+    var searchQuery by remember { mutableStateOf("") }
+    val focusManager = LocalFocusManager.current
 
-    val filteredBuilds = remember(selectedCategory) {
-        if (selectedCategory == "全部") {
-            GunsmithBuildRepository.POPULAR_BUILDS
-        } else {
-            GunsmithBuildRepository.POPULAR_BUILDS.filter { it.category == selectedCategory }
+    val categories = remember {
+        listOf("全部", "突击步枪", "冲锋枪", "狙击步枪", "射手步枪", "轻机枪/霰弹", "手枪/特种")
+    }
+
+    // 后台静默刷新最新官方热门方案
+    LaunchedEffect(Unit) {
+        val updated = repository.fetchOfficialBuilds(force = false)
+        if (updated.isNotEmpty()) {
+            allBuilds = updated
+        }
+    }
+
+    // 过滤方案列表
+    val filteredBuilds = remember(allBuilds, selectedCategory, searchQuery) {
+        val q = searchQuery.trim().lowercase()
+        allBuilds.filter { build ->
+            val matchCategory = if (selectedCategory == "全部") true else build.category == selectedCategory
+            val matchSearch = if (q.isBlank()) true else {
+                build.gunName.lowercase().contains(q) ||
+                build.roleName.lowercase().contains(q) ||
+                build.author.lowercase().contains(q) ||
+                build.keyAccessories.any { it.lowercase().contains(q) }
+            }
+            matchCategory && matchSearch
         }
     }
 
@@ -77,10 +107,10 @@ fun HotGunsmithBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.88f)
-                .padding(bottom = 24.dp)
+                .fillMaxHeight(0.92f)
+                .padding(bottom = 16.dp)
         ) {
-            // 顶栏标题与关闭按钮
+            // 1. 顶栏标题与关闭按钮
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -100,15 +130,31 @@ fun HotGunsmithBottomSheet(
                         modifier = Modifier.size(24.dp)
                     )
                     Column {
-                        Text(
-                            text = "热门改枪配装 • 战术抄作业",
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimaryDark
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "改枪配装库 • 真实满改图",
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimaryDark
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(TacticalOrange.copy(alpha = 0.12f))
+                                    .padding(horizontal = 5.dp, vertical = 1.dp)
+                            ) {
+                                Text(
+                                    text = "${filteredBuilds.size}套方案",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TacticalOrange
+                                )
+                            }
+                        }
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "主流干员排位精选搭配，附官方高清渲染与一键改枪码",
+                            text = "直连腾讯官方社区，提供真实满改3D外观与合法改枪码",
                             fontSize = 11.sp,
                             color = TextSecondaryGray,
                             maxLines = 1,
@@ -130,9 +176,58 @@ fun HotGunsmithBottomSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // 武器分类过滤胶囊
+            // 2. 搜索框
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = {
+                    Text(
+                        text = "搜索枪械名称、方案名、选手昵称 (如 M4, M7, 勇士)",
+                        fontSize = 12.sp,
+                        color = TextSecondaryGray
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "搜索",
+                        tint = TextSecondaryGray,
+                        modifier = Modifier.size(18.dp)
+                    )
+                },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "清空",
+                                tint = TextSecondaryGray,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = TacticalOrange,
+                    unfocusedBorderColor = Color(0xFFE2E8F0),
+                    focusedContainerColor = Color(0xFFF8FAFC),
+                    unfocusedContainerColor = Color(0xFFF8FAFC)
+                ),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .height(48.dp)
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 3. 武器分类过滤胶囊
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -159,21 +254,45 @@ fun HotGunsmithBottomSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // 方案列表
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 6.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                items(filteredBuilds, key = { it.id }) { build ->
-                    GunsmithBuildDetailCard(
-                        build = build,
-                        onCopyCode = { onCopyCode(build.gunName, build.buildCode) }
-                    )
+            // 4. 方案列表
+            if (filteredBuilds.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "未找到匹配的改枪方案",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextSecondaryGray
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "可尝试输入枪械英文/中文简称或切换分类",
+                            fontSize = 12.sp,
+                            color = Color(0xFF94A3B8)
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 6.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    items(filteredBuilds, key = { it.id }) { build ->
+                        GunsmithBuildDetailCard(
+                            build = build,
+                            onCopyCode = { onCopyCode(build.gunName, build.buildCode) }
+                        )
+                    }
                 }
             }
         }
@@ -181,7 +300,7 @@ fun HotGunsmithBottomSheet(
 }
 
 /**
- * 单把枪械详细配装卡片（含大图、配件树、改枪码复制）
+ * 单把枪械详细配装卡片（含满改大图、作者、造价、配件树、改枪码复制）
  */
 @Composable
 private fun GunsmithBuildDetailCard(
@@ -200,26 +319,26 @@ private fun GunsmithBuildDetailCard(
         shape = RoundedCornerShape(18.dp)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
-            // 1. 枪械官方高清透底大图展示区
+            // 1. 枪械官方高清透底大图展示区（展示真实满改外观）
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp)
+                    .height(136.dp)
                     .clip(RoundedCornerShape(14.dp))
                     .background(GunCardBg),
                 contentAlignment = Alignment.Center
             ) {
                 AsyncItemImage(
-                    url = build.imageUrl,
+                    url = build.imageUrl.ifBlank { build.gunBasePic },
                     contentDescription = build.gunName,
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
                     contentScale = ContentScale.Fit,
                     fallback = {
                         Text(
                             text = build.gunName,
-                            fontSize = 20.sp,
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF94A3B8)
                         )
@@ -232,7 +351,7 @@ private fun GunsmithBuildDetailCard(
                         .align(Alignment.TopStart)
                         .padding(8.dp)
                         .clip(RoundedCornerShape(6.dp))
-                        .background(Color.White.copy(alpha = 0.9f))
+                        .background(Color.White.copy(alpha = 0.92f))
                         .border(0.6.dp, Color(0xFFE2E8F0), RoundedCornerShape(6.dp))
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
@@ -242,6 +361,51 @@ private fun GunsmithBuildDetailCard(
                         fontWeight = FontWeight.SemiBold,
                         color = TextSecondaryGray
                     )
+                }
+
+                // 右上角预估造价标签
+                if (build.price > 0) {
+                    val wan = build.price / 10000
+                    val qian = (build.price % 10000) / 1000
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(TacticalDark.copy(alpha = 0.88f))
+                            .padding(horizontal = 7.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "造价: $wan.${qian}万",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFFFD700)
+                        )
+                    }
+                }
+
+                // 左下角创作者徽章
+                if (build.author.isNotBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(8.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Color.White.copy(alpha = 0.92f))
+                            .border(0.6.dp, Color(0xFFE2E8F0), RoundedCornerShape(6.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "👑 ${build.author}",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimaryDark,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
                 }
             }
 
@@ -253,7 +417,7 @@ private fun GunsmithBuildDetailCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
                     Text(
                         text = build.gunName,
                         fontSize = 16.sp,
@@ -264,8 +428,10 @@ private fun GunsmithBuildDetailCard(
                     Text(
                         text = build.roleName,
                         fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = TacticalOrange
+                        fontWeight = FontWeight.SemiBold,
+                        color = TacticalOrange,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
@@ -292,7 +458,9 @@ private fun GunsmithBuildDetailCard(
                 text = build.description,
                 fontSize = 12.sp,
                 color = TextSecondaryGray,
-                lineHeight = 17.sp
+                lineHeight = 17.sp,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -319,31 +487,32 @@ private fun GunsmithBuildDetailCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // 5. 核心推荐配件
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFFF8FAFC))
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    text = "配件:",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimaryDark
-                )
-                Text(
-                    text = build.keyAccessories.joinToString(" • "),
-                    fontSize = 11.sp,
-                    color = TextSecondaryGray,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+            // 5. 核心推荐配件胶囊
+            if (build.keyAccessories.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFFF8FAFC))
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "核心改件:",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimaryDark
+                    )
+                    Text(
+                        text = build.keyAccessories.joinToString(" • "),
+                        fontSize = 11.sp,
+                        color = TextSecondaryGray,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
