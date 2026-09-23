@@ -78,18 +78,19 @@ class GunsmithRepository(private val context: Context) {
     fun getBuilds(): List<GunsmithBuild> {
         memoryCache?.let { if (it.isNotEmpty()) return it }
 
-        // 1. 尝试从本地 SharedPreferences 读取
+        val assetList = loadFromAssets()
+
+        // 1. 尝试从本地 SharedPreferences 读取 (仅当缓存数不低于离线底包时采纳)
         val savedJson = prefs.getString(KEY_CACHE_JSON, null)
         if (!savedJson.isNullOrEmpty()) {
             val list = parseBuildsJson(savedJson)
-            if (list.isNotEmpty()) {
+            if (list.size >= assetList.size && list.isNotEmpty()) {
                 memoryCache = list
                 return list
             }
         }
 
-        // 2. 从 Assets 离线底包读取
-        val assetList = loadFromAssets()
+        // 2. 优先采用更新更大的 Assets 离线底包
         if (assetList.isNotEmpty()) {
             memoryCache = assetList
             return assetList
