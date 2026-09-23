@@ -363,25 +363,22 @@ private fun GunsmithBuildDetailCard(
                     )
                 }
 
-                // 右上角预估造价标签
-                if (build.price > 0) {
-                    val wan = build.price / 10000
-                    val qian = (build.price % 10000) / 1000
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(8.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(TacticalDark.copy(alpha = 0.88f))
-                            .padding(horizontal = 7.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = "造价: $wan.${qian}万",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFFFD700)
-                        )
-                    }
+                // 右上角战术特性徽标
+                val topBadge = build.pros.firstOrNull() ?: "战术方案"
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(TacticalDark.copy(alpha = 0.88f))
+                        .padding(horizontal = 7.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = topBadge,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFFFD700)
+                    )
                 }
 
                 // 左下角创作者徽章
@@ -435,7 +432,8 @@ private fun GunsmithBuildDetailCard(
                     )
                 }
 
-                // 核心参数规格
+                // 核心参数规格 (过滤造价)
+                val validSpecs = if (build.specs.isNotBlank() && !build.specs.contains("造价")) build.specs else (build.pros.firstOrNull() ?: "实战方案")
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
@@ -443,7 +441,7 @@ private fun GunsmithBuildDetailCard(
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = build.specs,
+                        text = validSpecs,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
                         color = TextSecondaryGray

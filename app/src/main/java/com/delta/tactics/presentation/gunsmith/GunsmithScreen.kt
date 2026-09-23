@@ -55,8 +55,8 @@ import kotlinx.coroutines.launch
  */
 enum class GunsmithSortType(val label: String) {
     DEFAULT("🔥 热门推荐"),
-    PRICE_ASC("💰 经济造价"),
-    PRICE_DESC("💎 顶级满改")
+    PRO_TEAM("👑 战队精选"),
+    ACCESSORIES("🔧 核心配件")
 }
 
 /**
@@ -141,8 +141,13 @@ fun GunsmithScreen(
 
         result = when (selectedSort) {
             GunsmithSortType.DEFAULT -> result
-            GunsmithSortType.PRICE_ASC -> result.sortedBy { b: GunsmithBuild -> if (b.price > 0) b.price.toLong() else Long.MAX_VALUE }
-            GunsmithSortType.PRICE_DESC -> result.sortedByDescending { it.price }
+            GunsmithSortType.PRO_TEAM -> result.sortedByDescending {
+                val a = it.author.lowercase()
+                a.contains("estar") || a.contains("jdg") || a.contains("lgd") ||
+                a.contains("ag") || a.contains("狼队") || a.contains("wbg") ||
+                a.contains("情久") || a.contains("天霸") || a.contains("官方")
+            }
+            GunsmithSortType.ACCESSORIES -> result.sortedByDescending { it.keyAccessories.size }
         }
 
         result
@@ -556,41 +561,22 @@ fun GunsmithBuildDetailCard(
                     )
                 }
 
-                // 右上角预估造价标签
-                if (build.price > 0) {
-                    val wan = build.price / 10000
-                    val qian = (build.price % 10000) / 1000
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(8.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(TacticalDark.copy(alpha = 0.90f))
-                            .padding(horizontal = 8.dp, vertical = 3.dp)
-                    ) {
-                        Text(
-                            text = "造价: $wan.${qian}万",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFFFD700)
-                        )
-                    }
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(8.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(AccentGreenSoft)
-                            .padding(horizontal = 8.dp, vertical = 3.dp)
-                    ) {
-                        Text(
-                            text = "高性价比",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = AccentGreen
-                        )
-                    }
+                // 右上角战术特性徽标
+                val topBadge = build.pros.firstOrNull() ?: "战术满改"
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(TacticalDark.copy(alpha = 0.90f))
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = topBadge,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFFFD700)
+                    )
                 }
 
                 // 左下角创作者徽章
@@ -642,8 +628,9 @@ fun GunsmithBuildDetailCard(
                     )
                 }
 
-                // 核心参数规格
-                if (build.specs.isNotBlank()) {
+                // 核心参数规格 (过滤造价描述)
+                val validSpecs = if (build.specs.isNotBlank() && !build.specs.contains("造价")) build.specs else ""
+                if (validSpecs.isNotBlank()) {
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
@@ -651,7 +638,7 @@ fun GunsmithBuildDetailCard(
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = build.specs,
+                            text = validSpecs,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
                             color = TextSecondaryGray

@@ -32,8 +32,8 @@ class GunsmithRepository(private val context: Context) {
 
     companion object {
         private const val CACHE_DURATION_MS = 2 * 60 * 60 * 1000L // 2 小时缓存失效
-        private const val KEY_CACHE_JSON = "cached_gunsmith_json"
-        private const val KEY_CACHE_TIME = "cached_gunsmith_time"
+        private const val KEY_CACHE_JSON = "cached_gunsmith_json_v3_pure"
+        private const val KEY_CACHE_TIME = "cached_gunsmith_time_v3_pure"
         private const val OFFICIAL_API_URL = "https://www.shushu.fan/api/guns-code/official"
 
         fun normalizeCategory(gunName: String, rawCategory: String): String {
@@ -286,9 +286,13 @@ class GunsmithRepository(private val context: Context) {
                     pros = prosList,
                     keyAccessories = accList,
                     author = obj.optString("author", "官方精选"),
-                    price = obj.optLong("price", 0L)
+                    price = 0L
                 )
-                if (build.buildCode.isNotBlank()) {
+                // 彻底过滤无满改图片或裸枪图片的方案
+                val isBareGun = build.imageUrl.isBlank() ||
+                                build.imageUrl.contains("/object/") ||
+                                (build.gunBasePic.isNotBlank() && build.imageUrl == build.gunBasePic)
+                if (!isBareGun && build.buildCode.isNotBlank()) {
                     result.add(build)
                 }
             }
@@ -370,28 +374,29 @@ class GunsmithRepository(private val context: Context) {
                 val rawDesc = item.optString("authorComment", "")
                 val cleanDesc = rawDesc.replace(Regex("<[^>]+>"), "").trim()
 
-                val priceWan = price / 10000
-                val priceQian = (price % 10000) / 1000
-                val specs = if (price > 0) "预估造价 $priceWan.${priceQian}万 • 控枪稳定性高" else "官方赛事调校"
+                val specs = if (tagsList.isNotEmpty()) tagsList.first() else "官方赛事调校"
 
-                result.add(
-                    GunsmithBuild(
-                        id = "remote_${item.optLong("id", i.toLong())}",
-                        gunName = gunName,
-                        roleName = buildTitle,
-                        category = category,
-                        caliber = gunDetail.optString("caliber", "通用").replace("ammo", ""),
-                        buildCode = code,
-                        imageUrl = previewPic,
-                        gunBasePic = armsDetail.optString("pic", ""),
-                        specs = specs,
-                        description = cleanDesc.ifBlank { "由知名创作者【$author】调校打造的战术配装方案。" },
-                        pros = tagsList.take(4),
-                        keyAccessories = if (accList.isNotEmpty()) accList.take(6) else listOf("战术消音", "光学瞄具", "竞技握把", "扩容弹匣"),
-                        author = author,
-                        price = price
+                val isBare = previewPic.isBlank() || previewPic.contains("/object/") || previewPic == armsDetail.optString("pic", "")
+                if (!isBare) {
+                    result.add(
+                        GunsmithBuild(
+                            id = "remote_${item.optLong("id", i.toLong())}",
+                            gunName = gunName,
+                            roleName = buildTitle,
+                            category = category,
+                            caliber = gunDetail.optString("caliber", "通用").replace("ammo", ""),
+                            buildCode = code,
+                            imageUrl = previewPic,
+                            gunBasePic = armsDetail.optString("pic", ""),
+                            specs = specs,
+                            description = cleanDesc.ifBlank { "由知名创作者【$author】调校打造的战术配装方案。" },
+                            pros = tagsList.take(4),
+                            keyAccessories = if (accList.isNotEmpty()) accList.take(6) else listOf("战术消音", "光学瞄具", "竞技握把", "扩容弹匣"),
+                            author = author,
+                            price = 0L
+                        )
                     )
-                )
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()

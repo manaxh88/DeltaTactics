@@ -887,8 +887,9 @@ private fun GunBuildCard(
                 )
             }
             Spacer(modifier = Modifier.height(2.dp))
+            val displaySpecs = if (specs.isNotBlank() && !specs.contains("造价")) specs else "实战调校"
             Text(
-                text = specs,
+                text = displaySpecs,
                 fontSize = 10.5.sp,
                 color = TextSecondaryGray,
                 maxLines = 1,
