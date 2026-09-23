@@ -27,6 +27,7 @@ class AppUpdateRepository(private val context: Context) {
         } else url
 
     private val githubApiUrl = "https://api.github.com/repos/manaxh88/DeltaTactics/releases/latest"
+    private val ghfastManifestUrl = "https://ghfast.top/https://raw.githubusercontent.com/manaxh88/DeltaTactics/main/version.json"
     private val cdnManifestUrl = "https://fastly.jsdelivr.net/gh/manaxh88/DeltaTactics@main/version.json"
     private val rawManifestUrl = "https://raw.githubusercontent.com/manaxh88/DeltaTactics/main/version.json"
 
@@ -85,19 +86,25 @@ class AppUpdateRepository(private val context: Context) {
     }
 
     /**
-     * 检查新版本（双通道：优先 GitHub Releases API，优雅降级至 CDN/Raw manifest）
+     * 检查新版本（多通道：国内直通加速镜像 -> GitHub Releases API -> jsDelivr CDN / Raw manifest）
      */
     suspend fun checkUpdate(
         currentVersionCode: Int = getInstalledVersionCode(),
         currentVersionName: String = getInstalledVersionName()
     ): Result<AppUpdateInfo> = withContext(Dispatchers.IO) {
-        // 1. 尝试从 GitHub Releases API 查询
+        // 1. 优先尝试国内加速直连通道 (无 CDN 缓存延迟、直通国内网络)
+        val ghfastResult = tryFetchFromManifest(ghfastManifestUrl, currentVersionCode, currentVersionName)
+        if (ghfastResult.isSuccess) {
+            return@withContext ghfastResult
+        }
+
+        // 2. 尝试从 GitHub Releases 官方 API 查询
         val githubResult = tryFetchFromGithubApi(currentVersionCode, currentVersionName)
         if (githubResult.isSuccess) {
             return@withContext githubResult
         }
 
-        // 2. 备选通道：从 CDN / Raw version.json 查询
+        // 3. 备选通道：从 jsDelivr CDN 查询
         val cdnResult = tryFetchFromManifest(cdnManifestUrl, currentVersionCode, currentVersionName)
         if (cdnResult.isSuccess) {
             return@withContext cdnResult
@@ -108,8 +115,8 @@ class AppUpdateRepository(private val context: Context) {
             return@withContext rawResult
         }
 
-        // 如果全部请求失败，返回最近的异常
-        githubResult
+        // 如果全部请求失败，返回国内加速直连的异常
+        ghfastResult
     }
 
     private fun tryFetchFromGithubApi(currentVersionCode: Int, currentVersionName: String): Result<AppUpdateInfo> {
@@ -181,12 +188,16 @@ class AppUpdateRepository(private val context: Context) {
 
     private fun tryFetchFromManifest(manifestUrl: String, currentVersionCode: Int, currentVersionName: String): Result<AppUpdateInfo> {
         return try {
-            val url = URL(manifestUrl)
+            val separator = if (manifestUrl.contains("?")) "&" else "?"
+            val finalUrl = "$manifestUrl${separator}_t=${System.currentTimeMillis()}"
+            val url = URL(finalUrl)
             val conn = (url.openConnection() as HttpURLConnection).apply {
                 connectTimeout = 4000
                 readTimeout = 4000
                 requestMethod = "GET"
                 setRequestProperty("User-Agent", "DeltaTactics-Android-Client")
+                setRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate")
+                setRequestProperty("Pragma", "no-cache")
             }
 
             if (conn.responseCode != HttpURLConnection.HTTP_OK) {
