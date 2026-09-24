@@ -8,6 +8,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,6 +30,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -42,8 +45,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -86,6 +92,7 @@ fun LiquidGlassBottomBar(
     cornerRadius: Dp = 32.dp
 ) {
     val density = LocalDensity.current
+    val haptic = LocalHapticFeedback.current
     val itemCount = items.size.coerceAtLeast(1)
 
     // 记录内部容器宽度，用于精准计算数学绝对对称坐标
@@ -96,28 +103,44 @@ fun LiquidGlassBottomBar(
     val pillHeightDp = 48.dp
     val pillWidthPx = with(density) { pillWidthDp.toPx() }
 
-    // 当前选中项中心 X 像素坐标：(selectedTab + 0.5) * (containerWidth / itemCount)
+    // 模拟苹果交互式手势滑动状态
+    var isDragging by remember { mutableStateOf(false) }
+    var dragCenterX by remember { mutableFloatStateOf(0f) }
+    var totalDragAmount by remember { mutableFloatStateOf(0f) }
+    var activeHoverIndex by remember { mutableIntStateOf(selectedTab) }
+
+    // 当非拖拽时，当前选中项中心 X 像素坐标：(selectedTab + 0.5) * (containerWidth / itemCount)
     val itemWidthPx = if (containerWidthPx > 0f) containerWidthPx / itemCount else 0f
-    val targetCenterX = if (itemWidthPx > 0f) {
+    val normalTargetCenterX = if (itemWidthPx > 0f) {
         (selectedTab + 0.5f) * itemWidthPx
     } else {
         0f
     }
 
+    val targetCenterX = if (isDragging) dragCenterX else normalTargetCenterX
+
     // 苹果标志性阻尼弹性滑移动画 (Spring Physics)
+    // 手势滑动时高响应度追踪手指，释放后柔和弹性吸附归位
     val animatedCenterX by animateFloatAsState(
         targetValue = targetCenterX,
-        animationSpec = spring(
-            dampingRatio = 0.78f,
-            stiffness = Spring.StiffnessMediumLow
-        ),
+        animationSpec = if (isDragging) {
+            spring(
+                dampingRatio = 0.95f,
+                stiffness = Spring.StiffnessHigh
+            )
+        } else {
+            spring(
+                dampingRatio = 0.78f,
+                stiffness = Spring.StiffnessMediumLow
+            )
+        },
         label = "apple_liquid_pill_x"
     )
 
-    // 移动过程中的液体表面张力拉伸动效 (Jelly Stretch)
-    val isMoving = containerWidthPx > 0f && abs(animatedCenterX - targetCenterX) > with(density) { 3.dp.toPx() }
+    // 移动/拖拽过程中的液体表面张力拉伸动效 (Jelly Stretch)
+    val isMoving = isDragging || (containerWidthPx > 0f && abs(animatedCenterX - targetCenterX) > with(density) { 3.dp.toPx() })
     val stretchScaleX by animateFloatAsState(
-        targetValue = if (isMoving) 1.08f else 1.0f,
+        targetValue = if (isMoving) 1.10f else 1.0f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessLow
@@ -125,7 +148,7 @@ fun LiquidGlassBottomBar(
         label = "liquid_stretch_x"
     )
     val stretchScaleY by animateFloatAsState(
-        targetValue = if (isMoving) 0.94f else 1.0f,
+        targetValue = if (isMoving) 0.92f else 1.0f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessLow
@@ -253,6 +276,50 @@ fun LiquidGlassBottomBar(
                     .onGloballyPositioned { coordinates ->
                         containerWidthPx = coordinates.size.width.toFloat()
                     }
+                    .pointerInput(itemCount, containerWidthPx, selectedTab) {
+                        if (containerWidthPx <= 0f) return@pointerInput
+                        val itemW = containerWidthPx / itemCount
+
+                        detectHorizontalDragGestures(
+                            onDragStart = { offset ->
+                                isDragging = true
+                                totalDragAmount = 0f
+                                dragCenterX = offset.x.coerceIn(itemW * 0.5f, containerWidthPx - itemW * 0.5f)
+                                val initialIdx = (dragCenterX / itemW).toInt().coerceIn(0, itemCount - 1)
+                                activeHoverIndex = initialIdx
+                            },
+                            onHorizontalDrag = { change, dragAmount ->
+                                change.consume()
+                                totalDragAmount += dragAmount
+                                dragCenterX = (dragCenterX + dragAmount).coerceIn(itemW * 0.5f, containerWidthPx - itemW * 0.5f)
+                                val hoverIdx = (dragCenterX / itemW).toInt().coerceIn(0, itemCount - 1)
+                                if (hoverIdx != activeHoverIndex) {
+                                    activeHoverIndex = hoverIdx
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                }
+                            },
+                            onDragEnd = {
+                                isDragging = false
+                                var finalIndex = (dragCenterX / itemW).toInt().coerceIn(0, itemCount - 1)
+                                // 灵敏微滑快切手势补偿 (轻微侧滑也能触发切页)
+                                val flickThreshold = itemW * 0.35f
+                                if (finalIndex == selectedTab) {
+                                    if (totalDragAmount > flickThreshold) {
+                                        finalIndex = minOf(itemCount - 1, selectedTab + 1)
+                                    } else if (totalDragAmount < -flickThreshold) {
+                                        finalIndex = maxOf(0, selectedTab - 1)
+                                    }
+                                }
+                                if (finalIndex != selectedTab) {
+                                    onTabSelected(finalIndex)
+                                }
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            },
+                            onDragCancel = {
+                                isDragging = false
+                            }
+                        )
+                    }
             ) {
                 // 3. 苹果液态药丸滑块 (Apple Liquid Pill Indicator)
                 if (containerWidthPx > 0f && animatedCenterX > 0f) {
@@ -315,8 +382,9 @@ fun LiquidGlassBottomBar(
                     modifier = Modifier.fillMaxSize(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val currentHighlightIndex = if (isDragging) activeHoverIndex else selectedTab
                     items.forEachIndexed { index, item ->
-                        val isSelected = index == selectedTab
+                        val isSelected = index == currentHighlightIndex
 
                         AppleTabItem(
                             item = item,
@@ -326,6 +394,7 @@ fun LiquidGlassBottomBar(
                             onClick = {
                                 if (selectedTab != index) {
                                     onTabSelected(index)
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 }
                             },
                             modifier = Modifier

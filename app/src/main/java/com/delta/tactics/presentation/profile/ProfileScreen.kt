@@ -310,7 +310,7 @@ fun ProfileScreen(
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = "三角洲战术助手 v3.2.3 (首页动态时间问候 · 体验细节打磨)",
+                            text = "三角洲战术助手 v3.2.4 (导航栏模拟苹果滑动切换 · 页面物理滑动动效)",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimaryDark
@@ -318,7 +318,7 @@ fun ProfileScreen(
                     }
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "• 首页顶部智能时间问候：告别固定「下午好」，根据系统当前真实时间段自动切换「夜深了/早上好/上午好/中午好/下午好/晚上好，指挥官」。\n• 导航栏与组件现代化规范优化：进一步优化底部导航栏矢量图标体系与无障碍体验。\n• 细节性能与稳定性提升。",
+                        text = "• 导航栏模拟苹果滑动切换：苹果风液态玻璃底栏全新支持横向拖拽与轻扫滑动切换，药丸滑块实时跟手与震动反馈，释放弹性吸附。\n• 页面物理滑动转场动效：页面切换深度适配苹果物理弹簧滑动过渡，左右滑入滑出顺滑自然。\n• 首页顶部动态时间问候及整体稳定性调优。",
                         fontSize = 12.sp,
                         color = TextSecondaryGray,
                         lineHeight = 20.sp

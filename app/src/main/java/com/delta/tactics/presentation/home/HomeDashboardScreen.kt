@@ -1,6 +1,16 @@
 package com.delta.tactics.presentation.home
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -260,7 +270,36 @@ fun HomeDashboardScreen(
         val navBarsBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
         Box(Modifier.fillMaxSize().glassSource(glassBackdrop)) {
-        when (currentNavTab) {
+            AnimatedContent(
+                targetState = currentNavTab,
+                transitionSpec = {
+                    if (targetState > initialState) {
+                        (slideInHorizontally(
+                            initialOffsetX = { fullWidth -> fullWidth },
+                            animationSpec = spring(dampingRatio = 0.88f, stiffness = Spring.StiffnessMediumLow)
+                        ) + fadeIn(animationSpec = tween(200)))
+                            .togetherWith(
+                                slideOutHorizontally(
+                                    targetOffsetX = { fullWidth -> -fullWidth },
+                                    animationSpec = spring(dampingRatio = 0.88f, stiffness = Spring.StiffnessMediumLow)
+                                ) + fadeOut(animationSpec = tween(150))
+                            )
+                    } else {
+                        (slideInHorizontally(
+                            initialOffsetX = { fullWidth -> -fullWidth },
+                            animationSpec = spring(dampingRatio = 0.88f, stiffness = Spring.StiffnessMediumLow)
+                        ) + fadeIn(animationSpec = tween(200)))
+                            .togetherWith(
+                                slideOutHorizontally(
+                                    targetOffsetX = { fullWidth -> fullWidth },
+                                    animationSpec = spring(dampingRatio = 0.88f, stiffness = Spring.StiffnessMediumLow)
+                                ) + fadeOut(animationSpec = tween(150))
+                            )
+                    }.using(SizeTransform(clip = false))
+                },
+                label = "apple_page_slide"
+            ) { tab ->
+                when (tab) {
             0 -> {
                 LazyColumn(
                     state = listState,
@@ -425,7 +464,7 @@ fun HomeDashboardScreen(
                 )
             }
         }
-
+        }
         }
         // A light veil keeps the gesture area readable while preserving the
         // background colors beneath the translucent glass dock.
