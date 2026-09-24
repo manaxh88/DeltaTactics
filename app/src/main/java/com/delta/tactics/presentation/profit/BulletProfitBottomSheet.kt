@@ -24,11 +24,17 @@ import com.delta.tactics.core.ui.theme.*
 import com.delta.tactics.domain.model.BulletPack
 import com.delta.tactics.domain.model.BulletPackItem
 
+import androidx.compose.ui.layout.ContentScale
+import com.delta.tactics.presentation.common.AsyncItemImage
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BulletProfitBottomSheet(
     sheetState: SheetState,
     packs: List<BulletPack>,
+    updateTimeText: String = "",
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
     onDismissRequest: () -> Unit
 ) {
     var selectedPackIndex by remember { mutableIntStateOf(0) }
@@ -66,26 +72,55 @@ fun BulletProfitBottomSheet(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "活动与邮件赠送自选包 · 选取拍卖行变现收益最大化的子弹",
+                        text = if (updateTimeText.isNotBlank()) updateTimeText else "活动与邮件赠送自选包 · 选取拍卖行变现收益最大化的子弹",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextSecondaryGray
                     )
                 }
 
-                // 右上角圆形关闭按钮
-                IconButton(
-                    onClick = onDismissRequest,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFF1F5F9))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "关闭",
-                        tint = TextPrimaryDark,
-                        modifier = Modifier.size(18.dp)
-                    )
+                    // 刷新按钮
+                    IconButton(
+                        onClick = { if (!isRefreshing) onRefresh() },
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFF1F5F9))
+                    ) {
+                        if (isRefreshing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = TacticalOrange
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "刷新",
+                                tint = TextPrimaryDark,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+
+                    // 右上角圆形关闭按钮
+                    IconButton(
+                        onClick = onDismissRequest,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFF1F5F9))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "关闭",
+                            tint = TextPrimaryDark,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
 
@@ -137,6 +172,14 @@ fun BulletProfitBottomSheet(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
+                            if (pack.imageUrl.isNotBlank()) {
+                                AsyncItemImage(
+                                    url = pack.imageUrl,
+                                    contentDescription = pack.packName,
+                                    modifier = Modifier.size(24.dp),
+                                    contentScale = ContentScale.Fit
+                                )
+                            }
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(6.dp))
@@ -188,6 +231,14 @@ fun BulletProfitBottomSheet(
 
 @Composable
 private fun BulletOptionRow(bullet: BulletPackItem) {
+    val gradeColor = when (bullet.grade) {
+        6 -> Color(0xFFDC2626) // 红色
+        5 -> Color(0xFFD97706) // 金色
+        4 -> Color(0xFF9333EA) // 紫色
+        3 -> Color(0xFF2563EB) // 蓝色
+        else -> if (bullet.isBest) Color(0xFF16A34A) else Color(0xFF94A3B8)
+    }
+
     Surface(
         color = CardWhite,
         shape = RoundedCornerShape(14.dp),
@@ -208,7 +259,8 @@ private fun BulletOptionRow(bullet: BulletPackItem) {
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.weight(1f)
             ) {
                 // 排名
                 Box(
@@ -228,20 +280,47 @@ private fun BulletOptionRow(bullet: BulletPackItem) {
                     )
                 }
 
-                // 子弹图标徽章
-                Box(
-                    modifier = Modifier
-                        .size(26.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(if (bullet.isBest) Color(0xFFDCFCE7) else Color(0xFFF1F5F9)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Bolt,
-                        contentDescription = null,
-                        tint = if (bullet.isBest) Color(0xFF16A34A) else TacticalOrange,
-                        modifier = Modifier.size(15.dp)
-                    )
+                // 子弹官方 3D 渲染图 (带品质边框)
+                if (bullet.imageUrl.isNotBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFFF8FAFC))
+                            .border(1.dp, gradeColor.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                            .padding(2.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AsyncItemImage(
+                            url = bullet.imageUrl,
+                            contentDescription = bullet.name,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit,
+                            fallback = {
+                                Icon(
+                                    imageVector = Icons.Default.Bolt,
+                                    contentDescription = null,
+                                    tint = gradeColor,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        )
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (bullet.isBest) Color(0xFFDCFCE7) else Color(0xFFF1F5F9)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Bolt,
+                            contentDescription = null,
+                            tint = if (bullet.isBest) Color(0xFF16A34A) else TacticalOrange,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
 
                 Column {

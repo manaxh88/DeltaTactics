@@ -11,8 +11,14 @@
       "hourlyProfit": 31101,
       "cost": 182000,
       "revenue": 430804,
-      "materials": ["芳纶防弹纤维 x6", "硬质防弹插板 x4", "特种扣具 x2"],
-      "recommendedLevel": 3
+      "materials": [
+        "芳纶防弹纤维 x6",
+        "硬质防弹插板 x4",
+        "特种扣具 x2"
+      ],
+      "recommendedLevel": 3,
+      "imageUrl": "https://playerhub.df.qq.com/playerhub/60004/object/11050005001.png",
+      "grade": 5
     },
     {
       "id": "armor_02",
@@ -24,8 +30,14 @@
       "hourlyProfit": 28949,
       "cost": 165000,
       "revenue": 396594,
-      "materials": ["超高分子聚乙烯 x5", "钛合金插板 x3", "重型尼龙布 x4"],
-      "recommendedLevel": 3
+      "materials": [
+        "超高分子聚乙烯 x5",
+        "钛合金插板 x3",
+        "重型尼龙布 x4"
+      ],
+      "recommendedLevel": 3,
+      "imageUrl": "https://playerhub.df.qq.com/playerhub/60004/object/11050005003.png",
+      "grade": 5
     },
     {
       "id": "armor_03",
@@ -37,8 +49,14 @@
       "hourlyProfit": 28903,
       "cost": 178000,
       "revenue": 409220,
-      "materials": ["防弹陶瓷块 x6", "加固钢丝织带 x3", "芳纶布料 x4"],
-      "recommendedLevel": 3
+      "materials": [
+        "防弹陶瓷块 x6",
+        "加固钢丝织带 x3",
+        "芳纶布料 x4"
+      ],
+      "recommendedLevel": 3,
+      "imageUrl": "https://playerhub.df.qq.com/playerhub/60004/object/11050005002.png",
+      "grade": 5
     },
     {
       "id": "armor_04",
@@ -50,8 +68,14 @@
       "hourlyProfit": 27234,
       "cost": 152000,
       "revenue": 369868,
-      "materials": ["复合芳纶布 x5", "轻量化内衬 x3", "工程搭扣 x2"],
-      "recommendedLevel": 2
+      "materials": [
+        "复合芳纶布 x5",
+        "轻量化内衬 x3",
+        "工程搭扣 x2"
+      ],
+      "recommendedLevel": 2,
+      "imageUrl": "https://playerhub.df.qq.com/playerhub/60004/object/11050004005.png",
+      "grade": 4
     },
     {
       "id": "armor_05",
@@ -63,8 +87,14 @@
       "hourlyProfit": 27164,
       "cost": 146000,
       "revenue": 363308,
-      "materials": ["高密度碳素外壳 x4", "防爆有机面罩 x2", "吸能海绵内衬 x3"],
-      "recommendedLevel": 2
+      "materials": [
+        "高密度碳素外壳 x4",
+        "防爆有机面罩 x2",
+        "吸能海绵内衬 x3"
+      ],
+      "recommendedLevel": 2,
+      "imageUrl": "https://playerhub.df.qq.com/playerhub/60004/object/11010005001.png",
+      "grade": 5
     },
     {
       "id": "armor_06",
@@ -76,8 +106,14 @@
       "hourlyProfit": 12254,
       "cost": 210000,
       "revenue": 381549,
-      "materials": ["夜视传感器模组 x1", "钛铝合金盔壳 x4", "夜视连接底座 x2"],
-      "recommendedLevel": 3
+      "materials": [
+        "夜视传感器模组 x1",
+        "钛铝合金盔壳 x4",
+        "夜视连接底座 x2"
+      ],
+      "recommendedLevel": 3,
+      "imageUrl": "https://playerhub.df.qq.com/playerhub/60004/object/11010005010.png",
+      "grade": 5
     },
     {
       "id": "armor_07",
@@ -89,8 +125,13 @@
       "hourlyProfit": 19639,
       "cost": 98000,
       "revenue": 255110,
-      "materials": ["凯夫拉纤维布 x4", "高强度导轨部件 x2"],
-      "recommendedLevel": 2
+      "materials": [
+        "凯夫拉纤维布 x4",
+        "高强度导轨部件 x2"
+      ],
+      "recommendedLevel": 2,
+      "imageUrl": "https://playerhub.df.qq.com/playerhub/60004/object/11010004001.png",
+      "grade": 4
     },
     {
       "id": "ammo_01",
@@ -102,8 +143,14 @@
       "hourlyProfit": 32733,
       "cost": 128000,
       "revenue": 324400,
-      "materials": ["钨合金弹芯 x10", "高能发射药 x8", "精炼黄铜弹壳 x120"],
-      "recommendedLevel": 3
+      "materials": [
+        "钨合金弹芯 x10",
+        "高能发射药 x8",
+        "精炼黄铜弹壳 x120"
+      ],
+      "recommendedLevel": 3,
+      "imageUrl": "https://playerhub.df.qq.com/playerhub/60004/object/gun/ammo/5.56x45mm.png",
+      "grade": 5
     },
     {
       "id": "ammo_02",
@@ -115,8 +162,14 @@
       "hourlyProfit": 30750,
       "cost": 145000,
       "revenue": 329500,
-      "materials": ["硬质淬火钢芯 x12", "无烟发射火药 x10", "重型铜壳 x120"],
-      "recommendedLevel": 3
+      "materials": [
+        "硬质淬火钢芯 x12",
+        "无烟发射火药 x10",
+        "重型铜壳 x120"
+      ],
+      "recommendedLevel": 3,
+      "imageUrl": "https://playerhub.df.qq.com/playerhub/60004/object/gun/ammo/7.62x51mm.png",
+      "grade": 5
     },
     {
       "id": "ammo_03",
@@ -128,8 +181,14 @@
       "hourlyProfit": 29550,
       "cost": 76000,
       "revenue": 194200,
-      "materials": ["高穿透黑弹头 x8", "精密底火 x6", "亚音速发色弹壳 x100"],
-      "recommendedLevel": 2
+      "materials": [
+        "高穿透黑弹头 x8",
+        "精密底火 x6",
+        "亚音速发色弹壳 x100"
+      ],
+      "recommendedLevel": 2,
+      "imageUrl": "https://playerhub.df.qq.com/playerhub/60004/object/gun/ammo/300BLK.png",
+      "grade": 4
     },
     {
       "id": "ammo_04",
@@ -141,8 +200,14 @@
       "hourlyProfit": 26400,
       "cost": 62000,
       "revenue": 167600,
-      "materials": ["高硬度钢芯 x6", "冲锋枪专用底火 x6", "标准弹壳 x150"],
-      "recommendedLevel": 2
+      "materials": [
+        "高硬度钢芯 x6",
+        "冲锋枪专用底火 x6",
+        "标准弹壳 x150"
+      ],
+      "recommendedLevel": 2,
+      "imageUrl": "https://playerhub.df.qq.com/playerhub/60004/object/gun/ammo/9x19.png",
+      "grade": 4
     },
     {
       "id": "med_01",
@@ -154,8 +219,14 @@
       "hourlyProfit": 35700,
       "cost": 85000,
       "revenue": 227800,
-      "materials": ["浓缩生理盐水 x4", "医用止血凝胶 x3", "高级特种抗生素 x2"],
-      "recommendedLevel": 3
+      "materials": [
+        "浓缩生理盐水 x4",
+        "医用止血凝胶 x3",
+        "高级特种抗生素 x2"
+      ],
+      "recommendedLevel": 3,
+      "imageUrl": "https://playerhub.df.qq.com/playerhub/60004/object/14020000006.png",
+      "grade": 4
     },
     {
       "id": "med_02",
@@ -167,8 +238,14 @@
       "hourlyProfit": 25280,
       "cost": 72000,
       "revenue": 198400,
-      "materials": ["无菌止血绷带 x6", "手术缝合线 x4", "医用酒精 x5"],
-      "recommendedLevel": 2
+      "materials": [
+        "无菌止血绷带 x6",
+        "手术缝合线 x4",
+        "医用酒精 x5"
+      ],
+      "recommendedLevel": 2,
+      "imageUrl": "https://playerhub.df.qq.com/playerhub/60004/object/14010000003.png",
+      "grade": 4
     },
     {
       "id": "med_03",
@@ -180,8 +257,14 @@
       "hourlyProfit": 29733,
       "cost": 41000,
       "revenue": 130200,
-      "materials": ["合成止痛药剂 x4", "医用胶囊壳 x6", "纯净蒸馏水 x3"],
-      "recommendedLevel": 1
+      "materials": [
+        "合成止痛药剂 x4",
+        "医用胶囊壳 x6",
+        "纯净蒸馏水 x3"
+      ],
+      "recommendedLevel": 1,
+      "imageUrl": "https://playerhub.df.qq.com/playerhub/60004/object/14030000002.png",
+      "grade": 3
     },
     {
       "id": "gun_01",
@@ -193,8 +276,14 @@
       "hourlyProfit": 25563,
       "cost": 135000,
       "revenue": 339500,
-      "materials": ["精密机加钢块 x4", "复进簧导杆模组 x2", "特种润滑油 x3"],
-      "recommendedLevel": 3
+      "materials": [
+        "精密机加钢块 x4",
+        "复进簧导杆模组 x2",
+        "特种润滑油 x3"
+      ],
+      "recommendedLevel": 3,
+      "imageUrl": "https://playerhub.df.qq.com/playerhub/60004/object/18010000001.png",
+      "grade": 4
     },
     {
       "id": "gun_02",
@@ -206,8 +295,14 @@
       "hourlyProfit": 26367,
       "cost": 96000,
       "revenue": 254200,
-      "materials": ["聚合物弹鼓壳体 x2", "高弹力发条弹簧 x3", "导料推弹板 x2"],
-      "recommendedLevel": 2
+      "materials": [
+        "聚合物弹鼓壳体 x2",
+        "高弹力发条弹簧 x3",
+        "导料推弹板 x2"
+      ],
+      "recommendedLevel": 2,
+      "imageUrl": "https://playerhub.df.qq.com/playerhub/60004/object/13120000247.png",
+      "grade": 4
     },
     {
       "id": "gun_03",
@@ -219,8 +314,14 @@
       "hourlyProfit": 27800,
       "cost": 81000,
       "revenue": 220000,
-      "materials": ["耐高温钛合金筒 x3", "迷宫式扰流碗 x4", "快速螺口接头 x1"],
-      "recommendedLevel": 2
+      "materials": [
+        "耐高温钛合金筒 x3",
+        "迷宫式扰流碗 x4",
+        "快速螺口接头 x1"
+      ],
+      "recommendedLevel": 2,
+      "imageUrl": "https://playerhub.df.qq.com/playerhub/60004/object/13130000165.png",
+      "grade": 4
     }
   ]
 }

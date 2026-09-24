@@ -32,6 +32,9 @@ import com.delta.tactics.presentation.common.AsyncItemImage
 fun CraftProfitBottomSheet(
     sheetState: SheetState,
     recipes: List<CraftRecipe>,
+    updateTimeText: String = "",
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
     onDismissRequest: () -> Unit
 ) {
     var selectedBench by remember { mutableStateOf(CraftBenchType.ALL) }
@@ -72,7 +75,7 @@ fun CraftProfitBottomSheet(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "避难所工作台挂机点饭 · 纯净利润与时薪倒排",
+                        text = if (updateTimeText.isNotBlank()) updateTimeText else "避难所工作台挂机点饭 · 纯净利润与时薪倒排",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextSecondaryGray
                     )
@@ -115,6 +118,30 @@ fun CraftProfitBottomSheet(
                                 fontSize = 11.sp,
                                 fontWeight = if (sortByHourly) FontWeight.Bold else FontWeight.Normal,
                                 color = if (sortByHourly) Color.White else TextSecondaryGray
+                            )
+                        }
+                    }
+
+                    // 刷新按钮
+                    IconButton(
+                        onClick = { if (!isRefreshing) onRefresh() },
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFF1F5F9))
+                    ) {
+                        if (isRefreshing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = TacticalOrange
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "刷新",
+                                tint = TextPrimaryDark,
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
@@ -241,30 +268,51 @@ private fun RecipeProfitRow(
                         )
                     }
 
-                    // 武器透明高清图或工作台类型图标
-                    val weaponImg = GunsmithBuildRepository.getWeaponImageUrl(recipe.name)
-                    if (weaponImg.isNotBlank()) {
+                    // 物品官方高清渲染图 (带品质边框)
+                    val imgUrl = recipe.imageUrl.ifBlank { GunsmithBuildRepository.getWeaponImageUrl(recipe.name) }
+                    val gradeColor = when (recipe.grade) {
+                        6 -> Color(0xFFDC2626) // 红色
+                        5 -> Color(0xFFD97706) // 金色
+                        4 -> Color(0xFF9333EA) // 紫色
+                        3 -> Color(0xFF2563EB) // 蓝色
+                        else -> Color(0xFF94A3B8)
+                    }
+                    if (imgUrl.isNotBlank()) {
                         Box(
                             modifier = Modifier
-                                .size(width = 46.dp, height = 28.dp)
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(Color.White)
-                                .border(0.5.dp, Color(0xFFE2E8F0), RoundedCornerShape(6.dp))
-                                .padding(2.dp),
+                                .size(44.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFFF8FAFC))
+                                .border(1.dp, gradeColor.copy(alpha = 0.55f), RoundedCornerShape(8.dp))
+                                .padding(3.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             AsyncItemImage(
-                                url = weaponImg,
+                                url = imgUrl,
                                 contentDescription = recipe.name,
                                 modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Fit
+                                contentScale = ContentScale.Fit,
+                                fallback = {
+                                    Icon(
+                                        imageVector = when (recipe.benchType) {
+                                            CraftBenchType.ARMOR -> Icons.Default.Shield
+                                            CraftBenchType.AMMO -> Icons.Default.Bolt
+                                            CraftBenchType.MEDICAL -> Icons.Default.LocalHospital
+                                            CraftBenchType.WEAPON -> Icons.Default.PrecisionManufacturing
+                                            else -> Icons.Default.Construction
+                                        },
+                                        contentDescription = null,
+                                        tint = gradeColor,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             )
                         }
                     } else {
                         Box(
                             modifier = Modifier
-                                .size(28.dp)
-                                .clip(RoundedCornerShape(7.dp))
+                                .size(44.dp)
+                                .clip(RoundedCornerShape(8.dp))
                                 .background(Color(0xFFF1F5F9)),
                             contentAlignment = Alignment.Center
                         ) {
@@ -277,14 +325,8 @@ private fun RecipeProfitRow(
                                     else -> Icons.Default.Construction
                                 },
                                 contentDescription = null,
-                                tint = when (recipe.benchType) {
-                                    CraftBenchType.ARMOR -> TacticalOrange
-                                    CraftBenchType.AMMO -> Color(0xFFEAB308)
-                                    CraftBenchType.MEDICAL -> Color(0xFF10B981)
-                                    CraftBenchType.WEAPON -> Color(0xFF3B82F6)
-                                    else -> TextSecondaryGray
-                                },
-                                modifier = Modifier.size(16.dp)
+                                tint = gradeColor,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }

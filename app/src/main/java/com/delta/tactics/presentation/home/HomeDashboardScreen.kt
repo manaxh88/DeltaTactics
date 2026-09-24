@@ -146,8 +146,44 @@ fun HomeDashboardScreen(
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
     val profitRepository = remember { ProfitRepository(context) }
-    val craftRecipes = remember { profitRepository.getCraftRecipes() }
-    val bulletPacks = remember { profitRepository.getBulletPacks() }
+    var craftRecipes by remember { mutableStateOf(profitRepository.getCraftRecipes()) }
+    var bulletPacks by remember { mutableStateOf(profitRepository.getBulletPacks()) }
+    var craftUpdateTime by remember { mutableStateOf(profitRepository.getCraftUpdateTime()) }
+    var bulletUpdateTime by remember { mutableStateOf(profitRepository.getBulletUpdateTime()) }
+    var isCraftRefreshing by remember { mutableStateOf(false) }
+    var isBulletRefreshing by remember { mutableStateOf(false) }
+
+    fun refreshCraftData(force: Boolean = true) {
+        if (isCraftRefreshing) return
+        isCraftRefreshing = true
+        coroutineScope.launch {
+            try {
+                val updated = profitRepository.fetchCraftRecipes(force)
+                craftRecipes = updated
+                craftUpdateTime = profitRepository.getCraftUpdateTime()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                isCraftRefreshing = false
+            }
+        }
+    }
+
+    fun refreshBulletData(force: Boolean = true) {
+        if (isBulletRefreshing) return
+        isBulletRefreshing = true
+        coroutineScope.launch {
+            try {
+                val updated = profitRepository.fetchBulletPacks(force)
+                bulletPacks = updated
+                bulletUpdateTime = profitRepository.getBulletUpdateTime()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                isBulletRefreshing = false
+            }
+        }
+    }
     val appUpdateRepository = remember { AppUpdateRepository(context) }
 
     var updateInfo by remember { mutableStateOf<AppUpdateInfo?>(null) }
@@ -258,8 +294,14 @@ fun HomeDashboardScreen(
                     onItemClick = { title ->
                         when (title) {
                             "战术解密" -> showDecryptCenterSheet = true
-                            "制造利润" -> showCraftProfitSheet = true
-                            "子弹收益" -> showBulletProfitSheet = true
+                            "制造利润" -> {
+                                showCraftProfitSheet = true
+                                refreshCraftData(force = false)
+                            }
+                            "子弹收益" -> {
+                                showBulletProfitSheet = true
+                                refreshBulletData(force = false)
+                            }
                             "武器对比" -> showWeaponCompareSheet = true
                             "钥匙房" -> showKeyRoomsSheet = true
                             else -> coroutineScope.launch { snackbarHostState.showSnackbar("进入「$title」") }
@@ -405,6 +447,9 @@ fun HomeDashboardScreen(
             CraftProfitBottomSheet(
                 sheetState = craftSheetState,
                 recipes = craftRecipes,
+                updateTimeText = craftUpdateTime,
+                isRefreshing = isCraftRefreshing,
+                onRefresh = { refreshCraftData(force = true) },
                 onDismissRequest = { showCraftProfitSheet = false }
             )
         }
@@ -414,6 +459,9 @@ fun HomeDashboardScreen(
             BulletProfitBottomSheet(
                 sheetState = bulletSheetState,
                 packs = bulletPacks,
+                updateTimeText = bulletUpdateTime,
+                isRefreshing = isBulletRefreshing,
+                onRefresh = { refreshBulletData(force = true) },
                 onDismissRequest = { showBulletProfitSheet = false }
             )
         }

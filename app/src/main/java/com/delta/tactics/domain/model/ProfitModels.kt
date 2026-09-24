@@ -19,7 +19,9 @@ data class CraftRecipe(
     val cost: Long,
     val revenue: Long,
     val materials: List<String>,
-    val recommendedLevel: Int = 1
+    val recommendedLevel: Int = 1,
+    val imageUrl: String = "",
+    val grade: Int = 0
 )
 
 data class BulletPack(
@@ -27,7 +29,8 @@ data class BulletPack(
     val packName: String,
     val recommendedBullet: String,
     val recommendedValue: Long,
-    val bullets: List<BulletPackItem>
+    val bullets: List<BulletPackItem>,
+    val imageUrl: String = ""
 )
 
 data class BulletPackItem(
@@ -37,5 +40,7 @@ data class BulletPackItem(
     val count: Int,
     val unitPrice: Long,
     val totalValue: Long,
-    val isBest: Boolean
+    val isBest: Boolean,
+    val imageUrl: String = "",
+    val grade: Int = 0
 )
