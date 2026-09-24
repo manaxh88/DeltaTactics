@@ -91,12 +91,18 @@ class CardLoadoutRepository(private val context: Context) {
                     return@withContext Result.success(parsed)
                 }
             }
-            // 请求不成功或解析失败时，优雅回退到当前现有数据
-            Result.success(getCardLoadoutData())
+            if (force) {
+                Result.failure(Exception("Failed to fetch or parse card loadout data: HTTP ${conn.responseCode}"))
+            } else {
+                Result.success(getCardLoadoutData())
+            }
         } catch (e: Exception) {
             e.printStackTrace()
-            // 网络异常回退
-            Result.success(getCardLoadoutData())
+            if (force) {
+                Result.failure(e)
+            } else {
+                Result.success(getCardLoadoutData())
+            }
         }
     }
 
@@ -109,12 +115,35 @@ class CardLoadoutRepository(private val context: Context) {
             val startIdx = html.indexOf(marker)
             if (startIdx == -1) return null
 
-            // 查找结尾: }]\\n"]
-            val endPattern = "}]\\n\"]"
-            var endIdx = html.indexOf(endPattern, startIdx)
+            var endIdx = -1
+            val timeIdx = html.indexOf("\\\"time\\\":", startIdx)
+            if (timeIdx != -1) {
+                val closeBrace = html.indexOf("}", timeIdx)
+                if (closeBrace != -1) {
+                    endIdx = closeBrace
+                }
+            }
             if (endIdx == -1) {
-                // 兜底找单个 }
-                endIdx = html.indexOf("}", startIdx)
+                val endPattern = "}]\\n\"]"
+                val pIdx = html.indexOf(endPattern, startIdx)
+                if (pIdx != -1) {
+                    endIdx = pIdx
+                }
+            }
+            if (endIdx == -1) {
+                // Bracket matching as fallback
+                var depth = 0
+                for (i in startIdx until html.length) {
+                    val c = html[i]
+                    if (c == '{') depth++
+                    else if (c == '}') {
+                        depth--
+                        if (depth == 0) {
+                            endIdx = i
+                            break
+                        }
+                    }
+                }
             }
             if (endIdx == -1) return null
 

@@ -26,6 +26,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -309,7 +310,7 @@ fun ProfileScreen(
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = "三角洲战术助手 v3.2.1 (自选包单行对齐 · 特勤处制造分类精准修复)",
+                            text = "三角洲战术助手 v3.2.2 (更新安装健壮性提升 · 小组件生命周期优化)",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimaryDark
@@ -317,7 +318,7 @@ fun ProfileScreen(
                     }
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "• 子弹自选包档位胶囊排版优化：优化通行证标签为「通行证自选」，4 档自选包字数对齐且强制单行不折行，告别双行拥挤。\n• 特勤处制造工作台精准归类：基于官方物品编码体系与图片路由深度校验，彻底修复枪械台误出现子弹与针剂的问题。\n• 弹药台与医疗台分类全面修复：45-70 各类子弹、箭矢与独头弹归位弹药台，战斗兴奋剂、激活针、强化针归位医疗台。\n• 收益列表缓存自动纠偏与版本更新。",
+                        text = "• FileProvider 路径与降级容错强化：补充内部存储路径映射，彻底解决部分设备安装更新包时的系统解析崩溃。\n• 桌面密码小组件生命周期优化：引入 goAsync 异步机制，保障在 Android 8.0+ 后台网络刷新稳定执行不被系统中断。\n• 密码与卡战备网络同步优化：完善强刷网络状态反馈，重构流式解析匹配逻辑，杜绝弱网下的假成功提示与解析异常。\n• 现代 Compose API 规范升级：升级 AutoMirrored 镜像矢量图标体系，提升无障碍与不同语言排版体验。",
                         fontSize = 12.sp,
                         color = TextSecondaryGray,
                         lineHeight = 20.sp
@@ -380,7 +381,7 @@ fun ProfileScreen(
                         }
                     }
                     Icon(
-                        imageVector = Icons.Default.OpenInNew,
+                        imageVector = Icons.AutoMirrored.Filled.OpenInNew,
                         contentDescription = null,
                         tint = TextSecondaryGray,
                         modifier = Modifier.size(18.dp)

@@ -179,16 +179,23 @@ class DailyPasswordWidgetProvider : AppWidgetProvider() {
             }
             ACTION_REFRESH_WIDGET -> {
                 Toast.makeText(context, "正在刷新每日密码...", Toast.LENGTH_SHORT).show()
+                val pendingResult = goAsync()
                 providerScope.launch {
-                    val repo = CipherRoomRepository(context)
-                    val result = withContext(Dispatchers.IO) {
-                        repo.syncDailyPasswordsFromWeb(force = true)
-                    }
-                    updateAllWidgets(context)
-                    if (result.isSuccess) {
-                        Toast.makeText(context, "每日密码已同步最新", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(context, "网络同步失败，已显示本地最新密码", Toast.LENGTH_SHORT).show()
+                    try {
+                        val repo = CipherRoomRepository(context)
+                        val result = withContext(Dispatchers.IO) {
+                            repo.syncDailyPasswordsFromWeb(force = true)
+                        }
+                        updateAllWidgets(context)
+                        if (result.isSuccess) {
+                            Toast.makeText(context, "每日密码已同步最新", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "网络同步失败，已显示本地最新密码", Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    } finally {
+                        pendingResult.finish()
                     }
                 }
             }

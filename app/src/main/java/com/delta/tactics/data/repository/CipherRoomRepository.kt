@@ -335,10 +335,18 @@ class CipherRoomRepository(private val context: Context? = null) {
                     return@withContext Result.success(mapCodeList)
                 }
             }
-            Result.success(_dailyPasswords.value)
+            if (force) {
+                Result.failure(Exception("网络响应异常 (HTTP ${conn.responseCode})"))
+            } else {
+                Result.success(_dailyPasswords.value)
+            }
         } catch (e: Exception) {
-            // 发生异常时优雅回退到本地现有数据
-            Result.success(_dailyPasswords.value)
+            // 发生异常时: 若为强制刷新则返回失败通知UI，同时保留本地现有可用数据
+            if (force) {
+                Result.failure(e)
+            } else {
+                Result.success(_dailyPasswords.value)
+            }
         }
     }
 }
