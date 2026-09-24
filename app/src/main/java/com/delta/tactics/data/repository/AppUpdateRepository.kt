@@ -28,6 +28,7 @@ class AppUpdateRepository(private val context: Context) {
 
     private val githubApiUrl = "https://api.github.com/repos/manaxh88/DeltaTactics/releases/latest"
     private val ghfastManifestUrl = "https://ghfast.top/https://raw.githubusercontent.com/manaxh88/DeltaTactics/main/version.json"
+    private val ghproxyManifestUrl = "https://ghproxy.net/https://raw.githubusercontent.com/manaxh88/DeltaTactics/main/version.json"
     private val cdnManifestUrl = "https://fastly.jsdelivr.net/gh/manaxh88/DeltaTactics@main/version.json"
     private val rawManifestUrl = "https://raw.githubusercontent.com/manaxh88/DeltaTactics/main/version.json"
 
@@ -86,22 +87,22 @@ class AppUpdateRepository(private val context: Context) {
     }
 
     /**
-     * 检查新版本（多通道：国内直通加速镜像 -> GitHub Releases API -> jsDelivr CDN / Raw manifest）
+     * 检查新版本（多通道：国内直通加速镜像 ghfast -> ghproxy -> jsDelivr CDN -> Raw manifest -> GitHub API）
      */
     suspend fun checkUpdate(
         currentVersionCode: Int = getInstalledVersionCode(),
         currentVersionName: String = getInstalledVersionName()
     ): Result<AppUpdateInfo> = withContext(Dispatchers.IO) {
-        // 1. 优先尝试国内加速直连通道 (无 CDN 缓存延迟、直通国内网络)
+        // 1. 优先尝试国内加速直连通道 1 (ghfast.top)
         val ghfastResult = tryFetchFromManifest(ghfastManifestUrl, currentVersionCode, currentVersionName)
         if (ghfastResult.isSuccess) {
             return@withContext ghfastResult
         }
 
-        // 2. 尝试从 GitHub Releases 官方 API 查询
-        val githubResult = tryFetchFromGithubApi(currentVersionCode, currentVersionName)
-        if (githubResult.isSuccess) {
-            return@withContext githubResult
+        // 2. 尝试国内加速直连通道 2 (ghproxy.net)
+        val ghproxyResult = tryFetchFromManifest(ghproxyManifestUrl, currentVersionCode, currentVersionName)
+        if (ghproxyResult.isSuccess) {
+            return@withContext ghproxyResult
         }
 
         // 3. 备选通道：从 jsDelivr CDN 查询
@@ -110,9 +111,16 @@ class AppUpdateRepository(private val context: Context) {
             return@withContext cdnResult
         }
 
+        // 4. GitHub raw 直连
         val rawResult = tryFetchFromManifest(rawManifestUrl, currentVersionCode, currentVersionName)
         if (rawResult.isSuccess) {
             return@withContext rawResult
+        }
+
+        // 5. 尝试从 GitHub Releases 官方 API 查询 (带频率限制保底)
+        val githubResult = tryFetchFromGithubApi(currentVersionCode, currentVersionName)
+        if (githubResult.isSuccess) {
+            return@withContext githubResult
         }
 
         // 如果全部请求失败，返回国内加速直连的异常
@@ -235,42 +243,71 @@ class AppUpdateRepository(private val context: Context) {
     }
 
     /**
-     * 流式下载 APK 并在下载过程中回调百分比进度
+     * 流式下载 APK 并在下载过程中回调百分比进度（支持多通道候选镜像智能降级）
      */
     suspend fun downloadApk(
         apkUrl: String,
         onProgress: (progress: Float, currentBytes: Long, totalBytes: Long) -> Unit
     ): Result<File> = withContext(Dispatchers.IO) {
-        try {
-            val url = URL(apkUrl)
+        val candidateUrls = mutableListOf<String>()
+        candidateUrls.add(apkUrl)
+        if (apkUrl.contains("github.com/")) {
+            val rawPath = apkUrl
+                .removePrefix("https://ghfast.top/")
+                .removePrefix("https://ghproxy.net/")
+                .removePrefix("https://hub.gitmirror.com/")
+            candidateUrls.add("https://ghproxy.net/$rawPath")
+            candidateUrls.add("https://ghfast.top/$rawPath")
+            candidateUrls.add(rawPath)
+        }
+
+        var lastError: Exception? = null
+        for (urlStr in candidateUrls.distinct()) {
+            val result = downloadSingleUrl(urlStr, onProgress)
+            if (result.isSuccess) {
+                return@withContext result
+            } else {
+                lastError = result.exceptionOrNull() as? Exception
+            }
+        }
+        Result.failure(lastError ?: Exception("下载更新失败，请重试或前往 GitHub 网页下载"))
+    }
+
+    private fun downloadSingleUrl(
+        urlStr: String,
+        onProgress: (progress: Float, currentBytes: Long, totalBytes: Long) -> Unit
+    ): Result<File> {
+        return try {
+            val url = URL(urlStr)
             val conn = (url.openConnection() as HttpURLConnection).apply {
                 connectTimeout = 10000
                 readTimeout = 30000
                 requestMethod = "GET"
                 setRequestProperty("User-Agent", "DeltaTactics-Android-Client")
-                // 支持重定向 (GitHub releases 最终会 302 重定向到 AWS S3 / objects.githubusercontent.com)
                 instanceFollowRedirects = true
             }
 
             var actualConn = conn
             var responseCode = actualConn.responseCode
-            // 处理显式 301/302 重定向
-            if (responseCode == HttpURLConnection.HTTP_MOVED_TEMP ||
-                responseCode == HttpURLConnection.HTTP_MOVED_PERM ||
-                responseCode == 307 || responseCode == 308
+            var redirects = 0
+            while ((responseCode == HttpURLConnection.HTTP_MOVED_TEMP ||
+                    responseCode == HttpURLConnection.HTTP_MOVED_PERM ||
+                    responseCode == 307 || responseCode == 308) && redirects < 5
             ) {
-                val newUrl = actualConn.getHeaderField("Location")
+                redirects++
+                val newUrl = actualConn.getHeaderField("Location") ?: break
                 actualConn = (URL(newUrl).openConnection() as HttpURLConnection).apply {
                     connectTimeout = 10000
                     readTimeout = 30000
                     requestMethod = "GET"
                     setRequestProperty("User-Agent", "DeltaTactics-Android-Client")
+                    instanceFollowRedirects = true
                 }
                 responseCode = actualConn.responseCode
             }
 
             if (responseCode != HttpURLConnection.HTTP_OK) {
-                return@withContext Result.failure(Exception("Download failed with HTTP $responseCode"))
+                return Result.failure(Exception("Download failed with HTTP $responseCode"))
             }
 
             val totalBytes = actualConn.contentLengthLong
@@ -298,7 +335,6 @@ class AppUpdateRepository(private val context: Context) {
                             0f
                         }
 
-                        // 降低主线程通知频率，每增加 1% 通知一次
                         if (progress - lastNotifiedProgress >= 0.01f || downloadedBytes == totalBytes) {
                             lastNotifiedProgress = progress
                             onProgress(progress, downloadedBytes, totalBytes)
@@ -315,10 +351,21 @@ class AppUpdateRepository(private val context: Context) {
     }
 
     /**
-     * 调起系统安装器
+     * 调起系统安装器（支持 Android 8.0+ 未知应用安装权限智能引导）
      */
     fun installApk(apkFile: File): Result<Unit> {
         return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (!context.packageManager.canRequestPackageInstalls()) {
+                    val permissionIntent = Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                        data = Uri.parse("package:${context.packageName}")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(permissionIntent)
+                    return Result.failure(Exception("请先在设置中允许本应用「安装未知应用」权限后重试"))
+                }
+            }
+
             val contentUri: Uri = FileProvider.getUriForFile(
                 context,
                 "${context.packageName}.fileprovider",
