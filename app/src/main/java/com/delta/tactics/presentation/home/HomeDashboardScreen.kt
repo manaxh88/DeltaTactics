@@ -278,7 +278,17 @@ fun HomeDashboardScreen(
             item {
                 Spacer(modifier = Modifier.height(4.dp))
                 SectionHeader(
-                    title = "每日密码"
+                    title = "每日密码",
+                    actionText = "添加桌面组件",
+                    onMoreClick = {
+                        val appWidgetManager = android.appwidget.AppWidgetManager.getInstance(context)
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && appWidgetManager.isRequestPinAppWidgetSupported) {
+                            val myProvider = android.content.ComponentName(context, com.delta.tactics.presentation.widget.DailyPasswordWidgetProvider::class.java)
+                            appWidgetManager.requestPinAppWidget(myProvider, null, null)
+                        } else {
+                            android.widget.Toast.makeText(context, "请在手机桌面上长按空白处，选择「小组件」添加到桌面", android.widget.Toast.LENGTH_LONG).show()
+                        }
+                    }
                 )
             }
             item {

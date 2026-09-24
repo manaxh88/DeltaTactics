@@ -32,6 +32,22 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- 桌面每日密码小组件 (4x2 经典全景卡片) -->
+        <receiver
+            android:name=".presentation.widget.DailyPasswordWidgetProvider"
+            android:exported="true"
+            android:label="每日密码速查">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.delta.tactics.action.COPY_CODE" />
+                <action android:name="com.delta.tactics.action.REFRESH_WIDGET" />
+                <action android:name="com.delta.tactics.action.UPDATE_DATA" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_daily_password_info" />
+        </receiver>
     </application>
 
 </manifest>

@@ -68,6 +68,10 @@ class CipherRoomRepository(private val context: Context? = null) {
                 .putString("cached_date", getTodayDateString())
                 .putString("cached_passwords_json", jsonArray.toString())
                 .apply()
+
+            context?.let { ctx ->
+                com.delta.tactics.presentation.widget.DailyPasswordWidgetProvider.updateAllWidgets(ctx)
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }
