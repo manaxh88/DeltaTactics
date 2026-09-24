@@ -57,7 +57,7 @@ fun SeasonTasksScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
-            contentPadding = PaddingValues(bottom = 110.dp + navBarsBottomPadding)
+            contentPadding = PaddingValues(bottom = 130.dp + navBarsBottomPadding)
         ) {
             // 1. 赛季总览与进度打卡大白卡
             item {

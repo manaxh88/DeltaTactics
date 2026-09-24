@@ -294,9 +294,12 @@ fun DecryptCenterBottomSheet(
                                             .weight(1f)
                                             .height(52.dp),
                                         shape = RoundedCornerShape(12.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B))
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color(0xFF1E293B),
+                                            contentColor = Color.White
+                                        )
                                     ) {
-                                        Text("短音 • 滴", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                                        Text("短音 • 滴", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                     }
 
                                     Button(
@@ -311,9 +314,12 @@ fun DecryptCenterBottomSheet(
                                             .weight(1f)
                                             .height(52.dp),
                                         shape = RoundedCornerShape(12.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155))
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color(0xFF334155),
+                                            contentColor = Color.White
+                                        )
                                     ) {
-                                        Text("长音 — 嗒", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                                        Text("长音 — 嗒", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                     }
                                 }
 

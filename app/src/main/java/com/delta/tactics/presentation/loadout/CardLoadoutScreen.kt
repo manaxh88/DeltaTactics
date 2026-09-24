@@ -98,7 +98,7 @@ fun CardLoadoutScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
-            contentPadding = PaddingValues(bottom = 110.dp + navBarsBottomPadding),
+            contentPadding = PaddingValues(bottom = 130.dp + navBarsBottomPadding),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // 1. 门槛档位切换大卡片行 (11W / 18W / 55W / 60W / 78W)

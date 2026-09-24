@@ -164,7 +164,7 @@ fun GunsmithScreen(
             .background(AppBackgroundLight),
         contentPadding = PaddingValues(
             top = statusBarTopPadding + 12.dp,
-            bottom = 110.dp + navBarsBottomPadding,
+            bottom = 130.dp + navBarsBottomPadding,
             start = 16.dp,
             end = 16.dp
         ),

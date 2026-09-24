@@ -388,23 +388,61 @@ private fun RecipeProfitRow(
                 }
             }
 
-            // 展开材料清单
+            // 展开材料与核算明细
             if (expanded) {
                 Spacer(modifier = Modifier.height(10.dp))
                 HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // 制造核算面板 (耗时 / 预期单次收益 / 时薪核算)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFFF8FAFC))
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("单次周期", fontSize = 10.sp, color = TextSecondaryGray)
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text("${recipe.durationHours} 小时", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextPrimaryDark)
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("单次净利", fontSize = 10.sp, color = TextSecondaryGray)
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text("+${formatWan(recipe.totalProfit)}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF16A34A), fontFamily = FontFamily.Monospace)
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("平均时薪", fontSize = 10.sp, color = TextSecondaryGray)
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text("+${formatNumber(recipe.hourlyProfit)}/h", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TacticalOrange, fontFamily = FontFamily.Monospace)
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "所需原材料清单：",
+                    text = "所需原材料与投入说明：",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = TextSecondaryGray
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                recipe.materials.forEach { mat ->
+                if (recipe.materials.isNotEmpty()) {
+                    recipe.materials.forEach { mat ->
+                        Text(
+                            text = "• $mat",
+                            fontSize = 11.sp,
+                            color = TextPrimaryDark,
+                            lineHeight = 16.sp
+                        )
+                    }
+                } else {
                     Text(
-                        text = "• $mat",
+                        text = "• 需在特勤处对应工作台投入初级物料合成，收益数据已按全网实时挂牌均价扣除预估材料成本。",
                         fontSize = 11.sp,
-                        color = TextPrimaryDark,
+                        color = TextSecondaryGray,
                         lineHeight = 16.sp
                     )
                 }

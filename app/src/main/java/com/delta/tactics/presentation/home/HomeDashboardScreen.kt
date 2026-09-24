@@ -263,7 +263,7 @@ fun HomeDashboardScreen(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 110.dp + navBarsBottomPadding)
+                    contentPadding = PaddingValues(bottom = 130.dp + navBarsBottomPadding)
                 ) {
                     // 1. 顶部问候栏 (猫猫头像+问候语+纯圆搜索按钮，去掉通知)
                     item {
@@ -297,7 +297,13 @@ fun HomeDashboardScreen(
             }
             item {
                 DailyMapPasswordsGrid(
-                    passwords = dailyPasswords
+                    passwords = dailyPasswords,
+                    onCopyCode = { item ->
+                        clipboardManager.setText(AnnotatedString(item.code))
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar("已复制 [${item.mapName}] 每日密码: ${item.code}")
+                        }
+                    }
                 )
             }
 
@@ -698,24 +704,32 @@ private fun QuickNavGridSection(
         QuickNavSquareCard(
             title = "战术解密",
             icon = Icons.Default.Lock,
+            iconTint = Color(0xFFF97316),
+            iconBgColor = Color(0xFFFFF7ED),
             modifier = Modifier.weight(1f),
             onClick = { onItemClick("战术解密") }
         )
         QuickNavSquareCard(
             title = "制造利润",
             icon = Icons.Default.PrecisionManufacturing,
+            iconTint = Color(0xFF2563EB),
+            iconBgColor = Color(0xFFEFF6FF),
             modifier = Modifier.weight(1f),
             onClick = { onItemClick("制造利润") }
         )
         QuickNavSquareCard(
             title = "子弹收益",
             icon = Icons.Default.MilitaryTech,
+            iconTint = Color(0xFF059669),
+            iconBgColor = Color(0xFFECFDF5),
             modifier = Modifier.weight(1f),
             onClick = { onItemClick("子弹收益") }
         )
         QuickNavSquareCard(
             title = "钥匙房",
             icon = Icons.Default.VpnKey,
+            iconTint = Color(0xFF7C3AED),
+            iconBgColor = Color(0xFFF5F3FF),
             modifier = Modifier.weight(1f),
             onClick = { onItemClick("钥匙房") }
         )
@@ -726,6 +740,8 @@ private fun QuickNavGridSection(
 private fun QuickNavSquareCard(
     title: String,
     icon: ImageVector,
+    iconTint: Color = TextPrimaryDark,
+    iconBgColor: Color = Color(0xFFF1F5F9),
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
@@ -736,22 +752,30 @@ private fun QuickNavSquareCard(
         shape = RoundedCornerShape(18.dp)
     ) {
         Column(
-            modifier = Modifier.padding(vertical = 16.dp, horizontal = 2.dp),
+            modifier = Modifier.padding(vertical = 12.dp, horizontal = 2.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = title,
-                tint = TextPrimaryDark,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(CircleShape)
+                    .background(iconBgColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = iconTint,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(7.dp))
             Text(
                 text = title,
                 fontSize = 12.sp,
-                color = TextSecondaryGray,
-                fontWeight = FontWeight.Medium,
+                color = TextPrimaryDark,
+                fontWeight = FontWeight.SemiBold,
                 textAlign = TextAlign.Center
             )
         }
@@ -998,30 +1022,32 @@ private fun GunBuildCard(
     }
 }
 
-/** 5. 每日地图密码网格 (采用与热门配装完全一致的高质感卡片排布) */
+/** 5. 每日地图密码网格 (3列 x 2行 高效紧凑战术微卡，支持点击一键复制密码) */
 @Composable
 private fun DailyMapPasswordsGrid(
-    passwords: List<DailyMapPassword>
+    passwords: List<DailyMapPassword>,
+    onCopyCode: (DailyMapPassword) -> Unit = {}
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        val chunked = remember(passwords) { passwords.chunked(2) }
+        val chunked = remember(passwords) { passwords.chunked(3) }
         for (row in chunked) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 for (item in row) {
-                    MapPasswordCard(
+                    MapPasswordCompactCard(
                         mapPassword = item,
+                        onClick = { onCopyCode(item) },
                         modifier = Modifier.weight(1f)
                     )
                 }
-                if (row.size == 1) {
+                for (i in 0 until (3 - row.size)) {
                     Spacer(modifier = Modifier.weight(1f))
                 }
             }
@@ -1030,47 +1056,64 @@ private fun DailyMapPasswordsGrid(
 }
 
 @Composable
-private fun MapPasswordCard(
+private fun MapPasswordCompactCard(
     mapPassword: DailyMapPassword,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier.border(1.dp, Color(0xFFF1F5F9), RoundedCornerShape(18.dp)),
+        onClick = onClick,
+        modifier = modifier.border(1.dp, Color(0xFFF1F5F9), RoundedCornerShape(14.dp)),
         color = CardWhite,
-        shape = RoundedCornerShape(18.dp)
+        shape = RoundedCornerShape(14.dp)
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 9.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 地图预览小灰块，居中优雅大号展示 4 位密码
+            // 地图名称标签 (带精致地图圆点)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(5.dp)
+                        .clip(CircleShape)
+                        .background(TacticalOrange)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = mapPassword.mapName,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextSecondaryGray,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(modifier = Modifier.height(5.dp))
+
+            // 4 位大号战术密码底色块
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(68.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .height(38.dp)
+                    .clip(RoundedCornerShape(8.dp))
                     .background(Color(0xFFF3F4F6)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = mapPassword.code,
-                    fontSize = 26.sp,
+                    fontSize = 18.sp,
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.ExtraBold,
                     color = TextPrimaryDark,
-                    letterSpacing = 3.sp
+                    letterSpacing = 2.sp
                 )
             }
-
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(
-                text = mapPassword.mapName,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimaryDark,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(2.dp))
         }
     }
 }

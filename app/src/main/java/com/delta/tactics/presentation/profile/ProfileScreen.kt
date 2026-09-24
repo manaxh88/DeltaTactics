@@ -94,7 +94,7 @@ fun ProfileScreen(
             .background(AppBackgroundLight),
         contentPadding = PaddingValues(
             top = statusBarTopPadding + 16.dp,
-            bottom = 110.dp + navBarsBottomPadding,
+            bottom = 140.dp + navBarsBottomPadding,
             start = 16.dp,
             end = 16.dp
         ),
@@ -309,7 +309,7 @@ fun ProfileScreen(
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = "三角洲战术助手 v3.1.0 (Android 桌面每日密码小组件 · 制造与子弹实时高清图)",
+                            text = "三角洲战术助手 v3.2.0 (全界面排版与视觉美学全面革新)",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimaryDark
@@ -317,7 +317,7 @@ fun ProfileScreen(
                     }
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "• 全新上线 Android 桌面每日密码小组件 (Widget)：4×2 全景精选卡片，支持桌面一览全部 6 大地图今日密码；无需启动 App，点击地图卡片即可直接复制密码并震动提示；支持桌面一键原地刷新数据与应用联动唤醒！\n• 一键添加桌面快捷方式：首页密码区与「我的」设置页面新增「添加桌面组件」直通入口，支持一键将小组件 Pin 到手机主屏幕。\n• 制造利润与子弹收益支持云端实时动态更新：装备制造与全品类子弹收益数据支持从云端动态获取最新市场行情，支持手动下拉与后台智能同步。\n• 官方 3D 透底高清图库：子弹收益与装备制造全线接入官方透明 3D 渲染图，视觉体验质感大升级。\n• 改枪方案库体验优化：优化造价估算展示与价格排序算法，提升多级缓存加载流畅度与离线容灾韧性。",
+                        text = "• 首页密码区战术微网格升级：优化为 3×2 极简紧凑布局，首屏空间利用率提升 40%，支持点击任意地图卡片直达复制今日密码。\n• 4 大金刚区战术色彩系统：战术解密、特勤处制造、子弹收益与钥匙房速查全新适配主题色与微光圆标，视觉层级清晰醒目。\n• 战术解密中心按键对比度修复：修复摩斯电码按键在浅色模式下文字对比度偏低问题，优化短长音高亮与按键反馈。\n• 特勤处制造展开面板升级：新增周期制造核算与时薪拆解看板，原料清单智能提示。\n• 全局悬浮底栏遮挡消除：全量主页面与列表底部安全边距增加，彻底杜绝悬浮玻璃 Dock 遮挡关键操作。",
                         fontSize = 12.sp,
                         color = TextSecondaryGray,
                         lineHeight = 20.sp
