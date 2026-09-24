@@ -188,6 +188,7 @@ fun HomeDashboardScreen(
 
     var updateInfo by remember { mutableStateOf<AppUpdateInfo?>(null) }
     var showUpdateDialog by remember { mutableStateOf(false) }
+    var showWidgetGuideDialog by remember { mutableStateOf(false) }
     var isCheckingUpdate by remember { mutableStateOf(false) }
     var downloadState by remember { mutableStateOf<UpdateDownloadState>(UpdateDownloadState.Idle) }
     var downloadedApkFile by remember { mutableStateOf<java.io.File?>(null) }
@@ -284,10 +285,13 @@ fun HomeDashboardScreen(
                         val appWidgetManager = android.appwidget.AppWidgetManager.getInstance(context)
                         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && appWidgetManager.isRequestPinAppWidgetSupported) {
                             val myProvider = android.content.ComponentName(context, com.delta.tactics.presentation.widget.DailyPasswordWidgetProvider::class.java)
-                            appWidgetManager.requestPinAppWidget(myProvider, null, null)
-                        } else {
-                            android.widget.Toast.makeText(context, "请在手机桌面上长按空白处，选择「小组件」添加到桌面", android.widget.Toast.LENGTH_LONG).show()
+                            try {
+                                appWidgetManager.requestPinAppWidget(myProvider, null, null)
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
                         }
+                        showWidgetGuideDialog = true
                     }
                 )
             }
@@ -588,6 +592,13 @@ fun HomeDashboardScreen(
                     showUpdateDialog = false
                     downloadState = UpdateDownloadState.Idle
                 }
+            )
+        }
+
+        // 桌面每日密码小组件添加引导弹窗
+        if (showWidgetGuideDialog) {
+            com.delta.tactics.presentation.widget.WidgetGuideDialog(
+                onDismiss = { showWidgetGuideDialog = false }
             )
         }
     }

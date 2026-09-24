@@ -34,7 +34,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -82,6 +85,8 @@ fun ProfileScreen(
             26
         }
     }
+
+    var showWidgetGuideDialog by remember { mutableStateOf(false) }
 
     LazyColumn(
         modifier = Modifier
@@ -265,10 +270,13 @@ fun ProfileScreen(
                             val appWidgetManager = android.appwidget.AppWidgetManager.getInstance(context)
                             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && appWidgetManager.isRequestPinAppWidgetSupported) {
                                 val myProvider = android.content.ComponentName(context, com.delta.tactics.presentation.widget.DailyPasswordWidgetProvider::class.java)
-                                appWidgetManager.requestPinAppWidget(myProvider, null, null)
-                            } else {
-                                android.widget.Toast.makeText(context, "请在手机桌面上长按空白处，选择「小组件」添加到桌面", android.widget.Toast.LENGTH_LONG).show()
+                                try {
+                                    appWidgetManager.requestPinAppWidget(myProvider, null, null)
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
                             }
+                            showWidgetGuideDialog = true
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = TacticalDark),
                         shape = RoundedCornerShape(12.dp),
@@ -380,5 +388,11 @@ fun ProfileScreen(
                 }
             }
         }
+    }
+
+    if (showWidgetGuideDialog) {
+        com.delta.tactics.presentation.widget.WidgetGuideDialog(
+            onDismiss = { showWidgetGuideDialog = false }
+        )
     }
 }
