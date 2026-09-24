@@ -310,7 +310,7 @@ fun ProfileScreen(
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = "三角洲战术助手 v3.2.2 (更新安装健壮性提升 · 小组件生命周期优化)",
+                            text = "三角洲战术助手 v3.2.3 (首页动态时间问候 · 体验细节打磨)",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimaryDark
@@ -318,7 +318,7 @@ fun ProfileScreen(
                     }
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "• FileProvider 路径与降级容错强化：补充内部存储路径映射，彻底解决部分设备安装更新包时的系统解析崩溃。\n• 桌面密码小组件生命周期优化：引入 goAsync 异步机制，保障在 Android 8.0+ 后台网络刷新稳定执行不被系统中断。\n• 密码与卡战备网络同步优化：完善强刷网络状态反馈，重构流式解析匹配逻辑，杜绝弱网下的假成功提示与解析异常。\n• 现代 Compose API 规范升级：升级 AutoMirrored 镜像矢量图标体系，提升无障碍与不同语言排版体验。",
+                        text = "• 首页顶部智能时间问候：告别固定「下午好」，根据系统当前真实时间段自动切换「夜深了/早上好/上午好/中午好/下午好/晚上好，指挥官」。\n• 导航栏与组件现代化规范优化：进一步优化底部导航栏矢量图标体系与无障碍体验。\n• 细节性能与稳定性提升。",
                         fontSize = 12.sp,
                         color = TextSecondaryGray,
                         lineHeight = 20.sp
