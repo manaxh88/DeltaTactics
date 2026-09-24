@@ -31,6 +31,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Assignment
+import androidx.compose.material.icons.automirrored.outlined.Assignment
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import com.delta.tactics.presentation.tasks.SeasonTasksScreen
@@ -241,7 +243,7 @@ fun HomeDashboardScreen(
             LiquidNavItem("首页", Icons.Outlined.Home, Icons.Filled.Home),
             LiquidNavItem("改枪", Icons.Outlined.Tune, Icons.Filled.Tune),
             LiquidNavItem("卡战备", Icons.Outlined.MonetizationOn, Icons.Filled.MonetizationOn),
-            LiquidNavItem("任务", Icons.Outlined.Assignment, Icons.Filled.Assignment),
+            LiquidNavItem("任务", Icons.AutoMirrored.Outlined.Assignment, Icons.AutoMirrored.Filled.Assignment),
             LiquidNavItem("我的", Icons.Outlined.Person, Icons.Filled.Person)
         )
     }
@@ -610,6 +612,17 @@ fun HomeDashboardScreen(
     }
 }
 
+internal fun getTimeGreeting(hour: Int = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)): String {
+    return when (hour) {
+        in 0..4 -> "夜深了"
+        in 5..8 -> "早上好"
+        in 9..11 -> "上午好"
+        in 12..13 -> "中午好"
+        in 14..17 -> "下午好"
+        else -> "晚上好"
+    }
+}
+
 /** 1. 顶部问候栏 (严格正圆搜索按钮，已移除通知) */
 @Composable
 private fun TopGreetingHeader(
@@ -641,7 +654,7 @@ private fun TopGreetingHeader(
 
             Column {
                 Text(
-                    text = "下午好，指挥官",
+                    text = "${getTimeGreeting()}，指挥官",
                     fontSize = 12.sp,
                     color = TextSecondaryGray,
                     fontWeight = FontWeight.Normal
