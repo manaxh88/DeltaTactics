@@ -1,10 +1,10 @@
 {
-  "versionCode": 28,
-  "versionName": "3.2.0",
+  "versionCode": 29,
+  "versionName": "3.2.1",
   "releaseDate": "2026-09-24",
-  "title": "三角洲战术助手 v3.2.0 (全界面排版与视觉美学全面革新)",
-  "changelog": "• 首页密码区战术微网格升级：优化为 3×2 极简紧凑布局，首屏空间利用率提升 40%，支持点击任意地图卡片直达复制今日密码。\n• 4 大金刚区战术色彩系统：战术解密、特勤处制造、子弹收益与钥匙房速查全新适配主题色与微光圆标，视觉层级清晰醒目。\n• 战术解密中心按键对比度修复：修复摩斯电码按键在浅色模式下文字对比度偏低问题，优化短长音高亮与按键反馈。\n• 特勤处制造展开面板升级：新增周期制造核算与时薪拆解看板，原料清单智能提示。\n• 全局悬浮底栏遮挡消除：全量主页面与列表底部安全边距增加，彻底杜绝悬浮玻璃 Dock 遮挡关键操作。",
-  "apkUrl": "https://ghfast.top/https://github.com/manaxh88/DeltaTactics/releases/download/v3.2.0/DeltaTactics-v3.2.0.apk",
+  "title": "三角洲战术助手 v3.2.1 (自选包单行对齐 · 特勤处制造分类精准修复)",
+  "changelog": "• 子弹自选包档位胶囊排版优化：优化通行证标签为「通行证自选」，4 档自选包字数对齐且强制单行不折行，告别双行拥挤。\n• 特勤处制造工作台精准归类：基于官方物品编码体系与图片路由深度校验，彻底修复枪械台误出现子弹与针剂的问题。\n• 弹药台与医疗台分类全面修复：45-70 各类子弹、箭矢与独头弹归位弹药台，战斗兴奋剂、激活针、强化针归位医疗台。\n• 收益列表缓存自动纠偏与版本更新。",
+  "apkUrl": "https://ghfast.top/https://github.com/manaxh88/DeltaTactics/releases/download/v3.2.1/DeltaTactics-v3.2.1.apk",
   "browserUrl": "https://github.com/manaxh88/DeltaTactics/releases/latest",
   "forceUpdate": false
 }

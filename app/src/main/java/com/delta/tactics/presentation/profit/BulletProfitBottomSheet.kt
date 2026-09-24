@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.delta.tactics.core.ui.theme.*
@@ -133,20 +134,30 @@ fun BulletProfitBottomSheet(
             ) {
                 packs.forEachIndexed { index, pack ->
                     val isSelected = selectedPackIndex == index
+                    val tabTitle = when {
+                        pack.packName.contains("通行证") -> "通行证自选"
+                        pack.packName.contains("3级") -> "3级自选包"
+                        pack.packName.contains("4级") -> "4级自选包"
+                        pack.packName.contains("5级") -> "5级自选包"
+                        else -> pack.packName.replace("子弹自选包", "自选包")
+                    }
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(12.dp))
                             .background(if (isSelected) PillNavBackground else IconCircleBg)
                             .clickable { selectedPackIndex = index }
-                            .padding(vertical = 8.dp),
+                            .padding(vertical = 8.dp, horizontal = 4.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = pack.packName.replace("子弹自选包", "自选包"),
+                            text = tabTitle,
                             fontSize = 11.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) Color.White else TextPrimaryDark
+                            color = if (isSelected) Color.White else TextPrimaryDark,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }

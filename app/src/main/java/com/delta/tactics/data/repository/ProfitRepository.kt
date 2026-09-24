@@ -24,8 +24,8 @@ class ProfitRepository(private val context: Context) {
 
     companion object {
         private const val PREFS_NAME = "delta_profit_prefs"
-        private const val KEY_CRAFT_JSON = "cached_craft_profit_json_v3"
-        private const val KEY_CRAFT_TIME = "cached_craft_profit_time_v3"
+        private const val KEY_CRAFT_JSON = "cached_craft_profit_json_v4"
+        private const val KEY_CRAFT_TIME = "cached_craft_profit_time_v4"
         private const val KEY_BULLET_JSON = "cached_bullet_pack_json_v3"
         private const val KEY_BULLET_TIME = "cached_bullet_pack_time_v3"
         private const val CACHE_DURATION_MS = 2 * 60 * 60 * 1000L // 2 小时有效
@@ -68,18 +68,56 @@ class ProfitRepository(private val context: Context) {
             }
         }
 
-        fun classifyBench(name: String, pic: String): Pair<CraftBenchType, String> {
+        /**
+         * 工作台精准归类逻辑:
+         * 1. 腾讯三角洲官方物品编码前缀判定:
+         *    - 11xxx: 防具台 (头盔、防弹衣、胸挂等)
+         *    - 14xxx: 医疗台 (战斗兴奋剂、体能激活针、强化针、止血药、医疗箱等)
+         *    - 37xxx: 弹药台 (全口径子弹、各类箭矢、独头弹等)
+         *    - 18xxx: 枪械台 (整枪制造)
+         *    - 13xxx: 枪械台 (枪械机匣、消音器、瞄准镜、枪托、导轨等配件)
+         * 2. 官方图片 URL 路由特征判定
+         * 3. 语义与关键词智能兜底判定
+         */
+        fun classifyBench(name: String, pic: String, id: String = ""): Pair<CraftBenchType, String> {
+            val cleanId = id.trim()
+            if (cleanId.startsWith("11")) return CraftBenchType.ARMOR to "防具台"
+            if (cleanId.startsWith("14")) return CraftBenchType.MEDICAL to "医疗台"
+            if (cleanId.startsWith("37")) return CraftBenchType.AMMO to "弹药台"
+            if (cleanId.startsWith("18") || cleanId.startsWith("13")) return CraftBenchType.WEAPON to "枪械台"
+
+            if (pic.contains("/110") || pic.contains("/111") || pic.contains("/object/11")) return CraftBenchType.ARMOR to "防具台"
+            if (pic.contains("/140") || pic.contains("/147") || pic.contains("/object/14")) return CraftBenchType.MEDICAL to "医疗台"
+            if (pic.contains("/37") || pic.contains("/object/37") || pic.contains("/gun/ammo")) return CraftBenchType.AMMO to "弹药台"
+            if (pic.contains("/18") || pic.contains("/13") || pic.contains("/object/18") || pic.contains("/object/13")) return CraftBenchType.WEAPON to "枪械台"
+
+            val lower = name.lowercase()
             return when {
-                pic.contains("/1105") || pic.contains("/1101") || pic.contains("/1107") || pic.contains("/1108") ||
-                name.contains("甲") || name.contains("头盔") || name.contains("背心") || name.contains("胸挂") || name.contains("防弹") ->
-                    CraftBenchType.ARMOR to "防具台"
-                pic.contains("/gun/ammo") || name.contains("BLK") || name.contains("×") || name.contains("x") ||
-                name.contains("弹") || name.contains("mm") || name.contains("Gauge") || name.contains("ACP") ->
+                // 1. 弹药 / 箭矢
+                name.contains("弹") || name.contains("箭") || name.contains("矢") ||
+                lower.contains("mm") || lower.contains("gauge") || lower.contains("acp") ||
+                lower.contains("blk") || lower.contains("fmj") || lower.contains("ftx") ||
+                lower.contains("rip") || lower.contains("ap") || lower.contains("hp") ||
+                lower.contains("sp") || lower.contains("bt") || lower.contains("lps") ||
+                lower.contains("m80") || lower.contains("m61") || lower.contains("m62") ||
+                lower.contains("m995") || lower.contains("45-70") || lower.contains(".357") ||
+                lower.contains(".50") || name.contains("×") || (lower.contains("x") && (lower.contains("7.62") || lower.contains("5.56") || lower.contains("5.45") || lower.contains("9x") || lower.contains("5.7") || lower.contains("5.8") || lower.contains("4.6") || lower.contains("12.7"))) ->
                     CraftBenchType.AMMO to "弹药台"
-                pic.contains("/1401") || pic.contains("/1402") || pic.contains("/1403") ||
-                name.contains("药") || name.contains("注射") || name.contains("包") || name.contains("医") ||
-                name.contains("痛") || name.contains("手术") || name.contains("急救") ->
+
+                // 2. 医疗 / 针剂 / 药剂
+                name.contains("针") || name.contains("剂") || name.contains("药") ||
+                name.contains("素") || name.contains("包") || name.contains("医") ||
+                name.contains("痛") || name.contains("手术") || name.contains("急救") ||
+                name.contains("绷带") || name.contains("血清") || name.contains("激活") ->
                     CraftBenchType.MEDICAL to "医疗台"
+
+                // 3. 防具 / 头盔 / 背心 / 胸挂
+                name.contains("甲") || name.contains("头盔") || name.contains("背心") ||
+                name.contains("胸挂") || name.contains("防弹") || name.contains("面罩") ||
+                name.contains("插板") || name.contains("夜视") ->
+                    CraftBenchType.ARMOR to "防具台"
+
+                // 4. 枪械与配件
                 else ->
                     CraftBenchType.WEAPON to "枪械台"
             }
@@ -357,39 +395,74 @@ class ProfitRepository(private val context: Context) {
      */
     private fun parseCraftFromHtml(html: String): List<CraftRecipe>? {
         return try {
-            val itemRegex = Regex("""\\"game_name\\":\\"([^\\"]+)\\",\\"grade\\":(\d+),\\"pic\\":\\"([^\\"]+)\\",\\"profit\\":(-?\d+),\\"profit_per_hour\\":(-?\d+),\\"duration_seconds\\":(\d+)""")
-            val matches = itemRegex.findAll(html)
+            val itemRegexWithId = Regex("""\\"object_id\\":(\d+),\\"game_name\\":\\"([^\\"]+)\\",\\"grade\\":(\d+),\\"pic\\":\\"([^\\"]+)\\",\\"profit\\":(-?\d+),\\"profit_per_hour\\":(-?\d+),\\"duration_seconds\\":(\d+)""")
+            val itemRegexFallback = Regex("""\\"game_name\\":\\"([^\\"]+)\\",\\"grade\\":(\d+),\\"pic\\":\\"([^\\"]+)\\",\\"profit\\":(-?\d+),\\"profit_per_hour\\":(-?\d+),\\"duration_seconds\\":(\d+)""")
+
             val list = mutableListOf<CraftRecipe>()
             var idx = 0
 
-            for (m in matches) {
-                val name = m.groupValues[1]
-                val grade = m.groupValues[2].toIntOrNull() ?: 4
-                val pic = m.groupValues[3]
-                val profit = m.groupValues[4].toLongOrNull() ?: 0L
-                val hourlyProfit = m.groupValues[5].toLongOrNull() ?: 0L
-                val durationSec = m.groupValues[6].toIntOrNull() ?: 3600
-                val durationHours = Math.max(1, Math.round(durationSec / 3600.0).toInt())
+            val matchesWithId = itemRegexWithId.findAll(html).toList()
+            if (matchesWithId.isNotEmpty()) {
+                for (m in matchesWithId) {
+                    val idStr = m.groupValues[1]
+                    val name = m.groupValues[2]
+                    val grade = m.groupValues[3].toIntOrNull() ?: 4
+                    val pic = m.groupValues[4]
+                    val profit = m.groupValues[5].toLongOrNull() ?: 0L
+                    val hourlyProfit = m.groupValues[6].toLongOrNull() ?: 0L
+                    val durationSec = m.groupValues[7].toIntOrNull() ?: 3600
+                    val durationHours = Math.max(1, Math.round(durationSec / 3600.0).toInt())
 
-                val (benchType, benchName) = classifyBench(name, pic)
+                    val (benchType, benchName) = classifyBench(name, pic, idStr)
 
-                list.add(
-                    CraftRecipe(
-                        id = "craft_live_${idx++}",
-                        name = name,
-                        benchType = benchType,
-                        benchName = benchName,
-                        durationHours = durationHours,
-                        totalProfit = profit,
-                        hourlyProfit = hourlyProfit,
-                        cost = 0L,
-                        revenue = profit,
-                        materials = emptyList(),
-                        recommendedLevel = Math.max(1, grade - 2),
-                        imageUrl = pic,
-                        grade = grade
+                    list.add(
+                        CraftRecipe(
+                            id = "craft_live_$idStr",
+                            name = name,
+                            benchType = benchType,
+                            benchName = benchName,
+                            durationHours = durationHours,
+                            totalProfit = profit,
+                            hourlyProfit = hourlyProfit,
+                            cost = 0L,
+                            revenue = profit,
+                            materials = emptyList(),
+                            recommendedLevel = Math.max(1, grade - 2),
+                            imageUrl = pic,
+                            grade = grade
+                        )
                     )
-                )
+                }
+            } else {
+                for (m in itemRegexFallback.findAll(html)) {
+                    val name = m.groupValues[1]
+                    val grade = m.groupValues[2].toIntOrNull() ?: 4
+                    val pic = m.groupValues[3]
+                    val profit = m.groupValues[4].toLongOrNull() ?: 0L
+                    val hourlyProfit = m.groupValues[5].toLongOrNull() ?: 0L
+                    val durationSec = m.groupValues[6].toIntOrNull() ?: 3600
+                    val durationHours = Math.max(1, Math.round(durationSec / 3600.0).toInt())
+
+                    val (benchType, benchName) = classifyBench(name, pic)
+
+                    list.add(
+                        CraftRecipe(
+                            id = "craft_live_${idx++}",
+                            name = name,
+                            benchType = benchType,
+                            benchName = benchName,
+                            durationHours = durationHours,
+                            totalProfit = profit,
+                            hourlyProfit = hourlyProfit,
+                            cost = 0L,
+                            revenue = profit,
+                            materials = emptyList(),
+                            recommendedLevel = Math.max(1, grade - 2),
+                            imageUrl = pic,
+                            grade = grade
+                        )
+                    )
+                }
             }
 
             if (list.isNotEmpty()) {
@@ -426,13 +499,24 @@ class ProfitRepository(private val context: Context) {
                 val recipeName = obj.optString("name", "未命名配方")
                 val rawRecipeImg = obj.optString("imageUrl", "")
                 val recipeImg = if (rawRecipeImg.isNotBlank()) rawRecipeImg else GunsmithBuildRepository.getWeaponImageUrl(recipeName)
+                val recipeId = obj.optString("id", "recipe_$i")
+
+                // 进行精准校验与纠偏，杜绝子弹/针剂误归入枪械台
+                val (classifiedType, classifiedName) = classifyBench(recipeName, recipeImg, recipeId)
+                val finalBenchType = if (benchType == CraftBenchType.ALL || (benchType == CraftBenchType.WEAPON && classifiedType != CraftBenchType.WEAPON)) {
+                    classifiedType
+                } else benchType
+
+                val finalBenchName = if (benchType == CraftBenchType.ALL || (benchType == CraftBenchType.WEAPON && classifiedType != CraftBenchType.WEAPON)) {
+                    classifiedName
+                } else obj.optString("benchName", classifiedName)
 
                 list.add(
                     CraftRecipe(
-                        id = obj.optString("id", "recipe_$i"),
+                        id = recipeId,
                         name = recipeName,
-                        benchType = benchType,
-                        benchName = obj.optString("benchName", "工作台"),
+                        benchType = finalBenchType,
+                        benchName = finalBenchName,
                         durationHours = obj.optInt("durationHours", 1),
                         totalProfit = obj.optLong("totalProfit", 0L),
                         hourlyProfit = obj.optLong("hourlyProfit", 0L),

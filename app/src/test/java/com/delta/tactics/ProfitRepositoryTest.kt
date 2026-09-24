@@ -122,4 +122,73 @@ class ProfitRepositoryTest {
         assertEquals("All bullets must have 3D ammo box images", totalBullets, bulletsWithImage)
         assertEquals("All bullets must have quality grade", totalBullets, bulletsWithGrade)
     }
+
+    @Test
+    fun `classifyBench accurately assigns ammo, injections, armor and weapons without false positives`() {
+        // 1. 验证子弹与箭矢 (必须归为 AMMO / 弹药台，绝不能混入枪械台)
+        val ammoCases = listOf(
+            Triple("45-70 Govt FMJ", "https://playerhub.df.qq.com/playerhub/60004/object/37290400001.png", "37290400001"),
+            Triple("45-70 Govt FTX", "https://playerhub.df.qq.com/playerhub/60004/object/37290500001.png", "37290500001"),
+            Triple("碳纤维刺骨箭矢", "https://playerhub.df.qq.com/playerhub/60004/object/37270400001.png", "37270400001"),
+            Triple("玻纤柳叶箭矢", "https://playerhub.df.qq.com/playerhub/60004/object/37270300001.png", "37270300001"),
+            Triple(".357 Magnum FMJ", "https://playerhub.df.qq.com/playerhub/60004/object/gun/ammo/.357.png", "37220400001"),
+            Triple("5.45x39mm BT", "https://playerhub.df.qq.com/playerhub/60004/object/gun/ammo/5.45x39.png", "37120400001"),
+            Triple("12 Gauge 独头 AP-20", "https://playerhub.df.qq.com/playerhub/60004/object/gun/ammo/12-Gauge.png", "37250400002")
+        )
+
+        for ((name, pic, id) in ammoCases) {
+            val (benchType, benchName) = com.delta.tactics.data.repository.ProfitRepository.classifyBench(name, pic, id)
+            assertEquals("Item $name should be AMMO bench", CraftBenchType.AMMO, benchType)
+            assertEquals("Item $name bench name should be 弹药台", "弹药台", benchName)
+
+            // 测试即使 ID 为空，通过 pic 与 name 兜底也必须正确归类
+            val (fallbackType, _) = com.delta.tactics.data.repository.ProfitRepository.classifyBench(name, pic, "")
+            assertEquals("Item $name fallback should be AMMO bench", CraftBenchType.AMMO, fallbackType)
+        }
+
+        // 2. 验证医疗与针剂 (必须归为 MEDICAL / 医疗台，绝不能混入枪械台)
+        val medCases = listOf(
+            Triple("OE2战斗兴奋剂", "https://playerhub.df.qq.com/playerhub/60004/object/14070000008.png", "14070000008"),
+            Triple("体能激活针", "https://playerhub.df.qq.com/playerhub/60004/object/14070000006.png", "14070000006"),
+            Triple("感知激活针", "https://playerhub.df.qq.com/playerhub/60004/object/14070000007.png", "14070000007"),
+            Triple("M1肌肉强化针", "https://playerhub.df.qq.com/playerhub/60004/object/14070000004.png", "14070000004"),
+            Triple("去甲肾上腺素", "https://playerhub.df.qq.com/playerhub/60004/object/14070000001.png", "14070000001"),
+            Triple("战地医疗箱", "https://playerhub.df.qq.com/playerhub/60004/object/14010000005.png", "14010000005"),
+            Triple("战地自愈全效注射剂", "https://playerhub.df.qq.com/playerhub/60004/object/14020000006.png", "14020000006")
+        )
+
+        for ((name, pic, id) in medCases) {
+            val (benchType, benchName) = com.delta.tactics.data.repository.ProfitRepository.classifyBench(name, pic, id)
+            assertEquals("Item $name should be MEDICAL bench", CraftBenchType.MEDICAL, benchType)
+            assertEquals("Item $name bench name should be 医疗台", "医疗台", benchName)
+
+            val (fallbackType, _) = com.delta.tactics.data.repository.ProfitRepository.classifyBench(name, pic, "")
+            assertEquals("Item $name fallback should be MEDICAL bench", CraftBenchType.MEDICAL, fallbackType)
+        }
+
+        // 3. 验证防具与头盔背心
+        val armorCases = listOf(
+            Triple("GN 久战重型夜视头盔", "https://playerhub.df.qq.com/playerhub/60004/object/11010005010.png", "11010005010"),
+            Triple("MK-2战术背心", "https://playerhub.df.qq.com/playerhub/60004/object/11050004004.png", "11050004004"),
+            Triple("DT-AVS防弹衣", "https://playerhub.df.qq.com/playerhub/60004/object/11050005008.png", "11050005008")
+        )
+
+        for ((name, pic, id) in armorCases) {
+            val (benchType, _) = com.delta.tactics.data.repository.ProfitRepository.classifyBench(name, pic, id)
+            assertEquals("Item $name should be ARMOR bench", CraftBenchType.ARMOR, benchType)
+        }
+
+        // 4. 验证枪械与配件 (归为 WEAPON / 枪械台)
+        val weaponCases = listOf(
+            Triple("M14射手步枪", "https://eo.oss.hengj.cn/one/object/18050000005.png", "18050000005"),
+            Triple("AUG突击步枪", "https://eo.oss.hengj.cn/one/object/18010000038.png", "18010000038"),
+            Triple("灵眼3/7弹道计算狙击镜", "https://eo.oss.hengj.cn/one/object/13110000091.png", "13110000091"),
+            Triple("骨架狙击枪托", "https://eo.oss.hengj.cn/one/object/13040000185.png", "13040000185")
+        )
+
+        for ((name, pic, id) in weaponCases) {
+            val (benchType, _) = com.delta.tactics.data.repository.ProfitRepository.classifyBench(name, pic, id)
+            assertEquals("Item $name should be WEAPON bench", CraftBenchType.WEAPON, benchType)
+        }
+    }
 }
